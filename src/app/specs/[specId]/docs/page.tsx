@@ -6,10 +6,10 @@ export default async function SpecDocsPage({
 }: {
   params: Promise<{ specId: string }>;
 }) {
-  // Unwrap params (Next.js 15+)
+  // Next.js 15+ requires unwrapping params
   const { specId } = await params;
 
-  // Your getSpecDocs only accepts one parameter (specId)
+  // getSpecDocs returns { markdown, html }
   const docs = await getSpecDocs(specId);
 
   return (
@@ -25,15 +25,15 @@ export default async function SpecDocsPage({
         / <span className="text-gray-900 font-medium">Docs</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Documentation</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Documentation</h1>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Markdown */}
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow">
           <h2 className="mb-3 text-lg font-semibold text-gray-900">Markdown</h2>
-          {docs.markdown_url ? (
+          {docs.markdown ? (
             <pre className="whitespace-pre-wrap text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200">
-              {docs.markdown_url}
+              {docs.markdown}
             </pre>
           ) : (
             <p className="text-gray-600 text-sm">No markdown available.</p>
@@ -43,10 +43,10 @@ export default async function SpecDocsPage({
         {/* HTML */}
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow">
           <h2 className="mb-3 text-lg font-semibold text-gray-900">HTML Preview</h2>
-          {docs.html_url ? (
+          {docs.html ? (
             <div
               className="prose prose-sm max-w-none rounded border border-gray-200 bg-white p-3"
-              dangerouslySetInnerHTML={{ __html: docs.html_url }}
+              dangerouslySetInnerHTML={{ __html: docs.html }}
             />
           ) : (
             <p className="text-gray-600 text-sm">No HTML available.</p>

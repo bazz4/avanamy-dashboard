@@ -72,7 +72,7 @@ export async function getSpecDocs(specId: string) {
   // Fetch plain text markdown
   const markdownRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/docs/${specId}/markdown`, {
     headers: {
-      "X-Tenant-ID": "dev", // or your default tenant
+      "X-Tenant-ID": TENANT_ID, // or your default tenant
     },
   });
 
@@ -81,7 +81,7 @@ export async function getSpecDocs(specId: string) {
   // Fetch plain HTML
   const htmlRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/docs/${specId}/html`, {
     headers: {
-      "X-Tenant-ID": "dev",
+      "X-Tenant-ID": TENANT_ID,
     },
   });
 
