@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSpecVersions } from "@/lib/api";
 import { RegenerateDocsButton } from "@/components/RegenerateDocsButton";
 import { UploadNewVersionForm } from "@/components/UploadNewVersionForm";
+import { VersionDiffDisplay } from "@/components/VersionDiffDisplay";
 
 export default async function SpecDetailPage({
   params,
@@ -65,22 +66,30 @@ export default async function SpecDetailPage({
             <ul className="space-y-3 text-sm">
               {sorted.map((v) => (
                 <li
-                  key={v.id}
-                  className="flex items-start justify-between rounded border border-gray-200 bg-gray-50 px-3 py-2"
+                  key={v.version}
+                  className="rounded border border-gray-200 bg-gray-50 px-3 py-2"
                 >
-                  <div>
-                    <div className="font-mono text-xs text-gray-900">
-                      {v.label ?? `v${v.version}`}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {new Date(v.created_at).toLocaleString()}
-                    </div>
-                    {v.changelog && (
-                      <div className="mt-1 text-xs text-gray-700">
-                        {v.changelog}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-mono text-xs text-gray-900">
+                        {v.label ?? `v${v.version}`}
                       </div>
-                    )}
+                      <div className="text-xs text-gray-600">
+                        {new Date(v.created_at).toLocaleString()}
+                      </div>
+                      {v.changelog && (
+                        <div className="mt-1 text-xs text-gray-700">
+                          {v.changelog}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Show diff if available */}
+                  <VersionDiffDisplay 
+                    diff={v.diff} 
+                    versionLabel={v.label ?? `v${v.version}`}
+                  />
                 </li>
               ))}
             </ul>

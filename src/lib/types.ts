@@ -26,6 +26,19 @@ export interface SpecVersion {
   label?: string;            // "v4" if backend gives it
   changelog?: string;
   created_at: string;
+  diff?: DiffInfo | null;    // Diff from previous version
+}
+
+export interface DiffInfo {
+  breaking: boolean;
+  changes: DiffChange[];
+}
+
+export interface DiffChange {
+  type: string;              // e.g. "endpoint_removed", "required_request_field_added"
+  path: string;              // e.g. "/users"
+  method?: string;           // e.g. "GET", "POST"
+  field?: string;            // e.g. "name", "phone"
 }
 
 export interface SpecDocs {
