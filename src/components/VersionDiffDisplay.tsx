@@ -5,10 +5,11 @@ import { DiffInfo } from "@/lib/types";
 
 interface VersionDiffDisplayProps {
   diff: DiffInfo | null | undefined;
+  summary: string | null | undefined;
   versionLabel: string;
 }
 
-export function VersionDiffDisplay({ diff, versionLabel }: VersionDiffDisplayProps) {
+export function VersionDiffDisplay({ diff, summary, versionLabel }: VersionDiffDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!diff || diff.changes.length === 0) {
@@ -25,6 +26,16 @@ export function VersionDiffDisplay({ diff, versionLabel }: VersionDiffDisplayPro
 
   return (
     <div className="mt-2 space-y-2">
+      {/* AI Summary - Show first if available */}
+      {summary && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+          <div className="flex items-start gap-2">
+            <span className="text-blue-600 font-semibold text-sm">🤖 AI Summary:</span>
+          </div>
+          <p className="text-sm text-blue-900 mt-1">{summary}</p>
+        </div>
+      )}
+
       {/* Badge */}
       <div className="flex items-center gap-2">
         {diff.breaking ? (

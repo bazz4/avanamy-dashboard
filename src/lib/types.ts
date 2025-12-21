@@ -27,6 +27,7 @@ export interface SpecVersion {
   changelog?: string;
   created_at: string;
   diff?: DiffInfo | null;    // Diff from previous version
+  summary?: string | null;   // AI-generated summary
 }
 
 export interface DiffInfo {

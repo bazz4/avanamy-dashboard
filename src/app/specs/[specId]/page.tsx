@@ -66,7 +66,7 @@ export default async function SpecDetailPage({
             <ul className="space-y-3 text-sm">
               {sorted.map((v) => (
                 <li
-                  key={v.version}
+                  key={v.id}
                   className="rounded border border-gray-200 bg-gray-50 px-3 py-2"
                 >
                   <div className="flex items-start justify-between">
@@ -87,7 +87,8 @@ export default async function SpecDetailPage({
                   
                   {/* Show diff if available */}
                   <VersionDiffDisplay 
-                    diff={v.diff} 
+                    diff={v.diff}
+                    summary={v.summary}
                     versionLabel={v.label ?? `v${v.version}`}
                   />
                 </li>
