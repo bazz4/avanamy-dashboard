@@ -50,3 +50,70 @@ export interface SpecDocs {
 export interface ApiError {
   detail?: string;
 }
+
+// Phase 6: Watched APIs
+export interface WatchedAPI {
+  id: string;
+  tenant_id: string;
+  provider_id: string;
+  api_product_id: string;
+  provider_name?: string;  // NEW
+  product_name?: string;   // NEW
+  api_spec_id?: string;
+  spec_url: string;
+  polling_frequency: 'hourly' | 'daily' | 'weekly';
+  polling_enabled: boolean;
+  last_polled_at: string | null;
+  last_successful_poll_at: string | null;
+  last_version_detected: string | null;
+  consecutive_failures: number;
+  status: string;
+  created_at: string;
+}
+
+// Phase 6: Alert Configuration
+export interface AlertConfig {
+  id: string;
+  tenant_id: string;
+  watched_api_id: string;
+  alert_type: 'email' | 'webhook' | 'slack';
+  destination: string;
+  alert_on_breaking_changes: boolean;
+  alert_on_non_breaking_changes: boolean;
+  alert_on_endpoint_failures: boolean;
+  alert_on_endpoint_recovery: boolean;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
+
+// Phase 6: Alert History
+export interface AlertHistory {
+  id: string;
+  tenant_id: string;
+  watched_api_id: string;
+  alert_config_id: string;
+  version_history_id: string | null;
+  alert_reason: 'breaking_change' | 'endpoint_down' | 'endpoint_recovered';
+  severity: 'info' | 'warning' | 'critical';
+  endpoint_path: string | null;
+  http_method: string | null;
+  payload: any;
+  status: 'pending' | 'sent' | 'failed';
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+// Phase 6: Endpoint Health
+export interface EndpointHealth {
+  id: string;
+  watched_api_id: string;
+  endpoint_path: string;
+  http_method: string;
+  status_code: number;
+  response_time_ms: number;
+  is_healthy: boolean;
+  error_message: string | null;
+  checked_at: string;
+}

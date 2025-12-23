@@ -1,8 +1,8 @@
 import "./globals.css";
 import React from "react";
-import Link from "next/link";
 import { Activity, AlertCircle, Radio, Database } from "lucide-react";
 import { AvanamyLogo } from "@/components/AvanamyLogo";
+import { NavLink } from "@/components/NavLink";
 
 export const metadata = {
   title: "Avanamy - API Monitoring Platform",
@@ -25,7 +25,7 @@ export default function RootLayout({
           <aside className="w-64 border-r border-slate-800 bg-slate-950/50 backdrop-blur-sm">
             <div className="sticky top-0 flex h-screen flex-col p-6">
               <div className="mb-8 flex items-center gap-3">
-                <AvanamyLogo size={40} variant="white" />
+                <AvanamyLogo size={40} variant="color" />
                 <div>
                   <h1 className="text-xl font-bold tracking-tight text-white">
                     Avanamy
@@ -78,25 +78,5 @@ export default function RootLayout({
         </div>
       </body>
     </html>
-  );
-}
-
-function NavLink({
-  href,
-  icon,
-  children,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-all hover:bg-slate-900/50 hover:text-cyan-400"
-    >
-      {icon}
-      {children}
-    </Link>
   );
 }

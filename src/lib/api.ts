@@ -106,3 +106,130 @@ export function uploadNewSpecVersion(
 
   return apiPost(`/api-specs/${specId}/upload-new-version`, formData);
 }
+
+// === Phase 6: Watched APIs ===
+
+import type { WatchedAPI, AlertConfig, AlertHistory, EndpointHealth } from "./types";
+
+async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    body: JSON.stringify(body ?? {}),
+    headers: { "Content-Type": "application/json", "X-Tenant-ID": TENANT_ID, ...(init?.headers ?? {}) },
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`PATCH ${path} failed`, res.status, text);
+    throw new Error(`API PATCH ${path} failed: ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function apiDelete(path: string, init?: RequestInit): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: { "X-Tenant-ID": TENANT_ID, ...(init?.headers ?? {}) },
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`DELETE ${path} failed`, res.status, text);
+    throw new Error(`API DELETE ${path} failed: ${res.status}`);
+  }
+}
+
+export function getWatchedAPIs(): Promise<WatchedAPI[]> {
+  return apiGet<WatchedAPI[]>("/watched-apis");
+}
+
+export function getWatchedAPI(id: string): Promise<WatchedAPI> {
+  return apiGet<WatchedAPI>(`/watched-apis/${id}`);
+}
+
+export function createWatchedAPI(data: {
+  provider_id: string;
+  api_product_id: string;
+  spec_url: string;
+  polling_frequency: string;
+}): Promise<WatchedAPI> {
+  return apiPost<WatchedAPI>("/watched-apis", data);
+}
+
+export function updateWatchedAPI(
+  id: string,
+  data: Partial<{
+    polling_enabled: boolean;
+    polling_frequency: string;
+    status: string;
+  }>
+): Promise<WatchedAPI> {
+  return apiPatch<WatchedAPI>(`/watched-apis/${id}`, data);
+}
+
+export function deleteWatchedAPI(id: string): Promise<void> {
+  return apiDelete(`/watched-apis/${id}`);
+}
+
+export function triggerPoll(id: string): Promise<any> {
+  return apiPost<any>(`/watched-apis/${id}/poll`);
+}
+
+// === Phase 6: Alert Configurations ===
+
+export function getAlertConfigs(watchedApiId?: string): Promise<AlertConfig[]> {
+  const query = watchedApiId ? `?watched_api_id=${watchedApiId}` : "";
+  return apiGet<AlertConfig[]>(`/alert-configs${query}`);
+}
+
+export function getAlertConfig(id: string): Promise<AlertConfig> {
+  return apiGet<AlertConfig>(`/alert-configs/${id}`);
+}
+
+export function createAlertConfig(data: {
+  watched_api_id: string;
+  alert_type: string;
+  destination: string;
+  alert_on_breaking_changes?: boolean;
+  alert_on_non_breaking_changes?: boolean;
+  alert_on_endpoint_failures?: boolean;
+  alert_on_endpoint_recovery?: boolean;
+  enabled?: boolean;
+}): Promise<AlertConfig> {
+  return apiPost<AlertConfig>("/alert-configs", data);
+}
+
+export function updateAlertConfig(
+  id: string,
+  data: Partial<{
+    alert_on_breaking_changes: boolean;
+    alert_on_non_breaking_changes: boolean;
+    alert_on_endpoint_failures: boolean;
+    alert_on_endpoint_recovery: boolean;
+    enabled: boolean;
+    destination: string;
+  }>
+): Promise<AlertConfig> {
+  return apiPatch<AlertConfig>(`/alert-configs/${id}`, data);
+}
+
+export function deleteAlertConfig(id: string): Promise<void> {
+  return apiDelete(`/alert-configs/${id}`);
+}
+
+export function testAlertConfig(id: string): Promise<{ status: string; message: string }> {
+  return apiGet<{ status: string; message: string }>(`/alert-configs/${id}/test`);
+}
+
+// === Phase 6: Alert History ===
+
+export function getAlertHistory(watchedApiId?: string): Promise<AlertHistory[]> {
+  const query = watchedApiId ? `?watched_api_id=${watchedApiId}` : "";
+  return apiGet<AlertHistory[]>(`/alert-history${query}`);
+}
+
+// === Phase 6: Endpoint Health ===
+
+export function getEndpointHealth(watchedApiId: string): Promise<EndpointHealth[]> {
+  return apiGet<EndpointHealth[]>(`/watched-apis/${watchedApiId}/health`);
+}
