@@ -109,7 +109,7 @@ export function uploadNewSpecVersion(
 
 // === Phase 6: Watched APIs ===
 
-import type { WatchedAPI, AlertConfig, AlertHistory, EndpointHealth } from "./types";
+import type { WatchedAPI, AlertConfig, AlertHistory, EndpointHealth, EndpointHealthSummary, WatchedAPIHealthSummary } from "./types";
 
 async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -223,13 +223,45 @@ export function testAlertConfig(id: string): Promise<{ status: string; message: 
 
 // === Phase 6: Alert History ===
 
-export function getAlertHistory(watchedApiId?: string): Promise<AlertHistory[]> {
-  const query = watchedApiId ? `?watched_api_id=${watchedApiId}` : "";
-  return apiGet<AlertHistory[]>(`/alert-history${query}`);
+export function getAlertHistory(params?: {
+  watched_api_id?: string;
+  severity?: string;
+  status?: string;
+  limit?: number;
+}): Promise<AlertHistory[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.watched_api_id) queryParams.append('watched_api_id', params.watched_api_id);
+  if (params?.severity) queryParams.append('severity', params.severity);
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  
+  const queryString = queryParams.toString();
+  return apiGet<AlertHistory[]>(`/alert-history${queryString ? `?${queryString}` : ''}`);
+}
+
+export function getAlertHistoryById(id: string): Promise<AlertHistory> {
+  return apiGet<AlertHistory>(`/alert-history/${id}`);
 }
 
 // === Phase 6: Endpoint Health ===
 
-export function getEndpointHealth(watchedApiId: string): Promise<EndpointHealth[]> {
-  return apiGet<EndpointHealth[]>(`/watched-apis/${watchedApiId}/health`);
+export function getEndpointHealth(
+  watchedApiId: string,
+  limit?: number
+): Promise<EndpointHealth[]> {
+  const query = limit ? `?limit=${limit}` : '';
+  return apiGet<EndpointHealth[]>(`/watched-apis/${watchedApiId}/health${query}`);
+}
+
+export function getEndpointHealthSummary(
+  watchedApiId: string,
+  hours?: number
+): Promise<EndpointHealthSummary[]> {
+  const query = hours ? `?hours=${hours}` : '';
+  return apiGet<EndpointHealthSummary[]>(`/watched-apis/${watchedApiId}/health/summary${query}`);
+}
+
+export function getAllHealthSummary(hours?: number): Promise<WatchedAPIHealthSummary[]> {
+  const query = hours ? `?hours=${hours}` : '';
+  return apiGet<WatchedAPIHealthSummary[]>(`/health/summary${query}`);
 }

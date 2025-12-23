@@ -93,27 +93,51 @@ export interface AlertHistory {
   tenant_id: string;
   watched_api_id: string;
   alert_config_id: string;
-  version_history_id: string | null;
-  alert_reason: 'breaking_change' | 'endpoint_down' | 'endpoint_recovered';
+  provider_name?: string;
+  product_name?: string;
+  alert_reason: string;
   severity: 'info' | 'warning' | 'critical';
-  endpoint_path: string | null;
-  http_method: string | null;
-  payload: any;
+  endpoint_path?: string;
+  http_method?: string;
+  payload?: any;
   status: 'pending' | 'sent' | 'failed';
-  error_message: string | null;
+  error_message?: string;
   sent_at: string | null;
   created_at: string;
 }
 
 // Phase 6: Endpoint Health
+// Endpoint Health
 export interface EndpointHealth {
   id: string;
   watched_api_id: string;
   endpoint_path: string;
   http_method: string;
-  status_code: number;
-  response_time_ms: number;
+  status_code?: number;
+  response_time_ms?: number;
   is_healthy: boolean;
-  error_message: string | null;
+  error_message?: string;
   checked_at: string;
+}
+
+export interface EndpointHealthSummary {
+  endpoint_path: string;
+  http_method: string;
+  total_checks: number;
+  healthy_checks: number;
+  uptime_percentage: number;
+  avg_response_time_ms?: number;
+  last_check: string;
+  is_currently_healthy: boolean;
+}
+
+export interface WatchedAPIHealthSummary {
+  watched_api_id: string;
+  provider_name?: string;
+  product_name?: string;
+  total_endpoints: number;
+  healthy_endpoints: number;
+  avg_response_time_ms?: number;
+  uptime_percentage: number;
+  last_checked: string;
 }
