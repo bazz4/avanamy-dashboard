@@ -1,0 +1,24 @@
+<svg width="32" height="32" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simplified for small size -->
+  <path d="M2 48 L8 48 L12 40 L16 48 L22 12 L28 48 L34 16 L40 40 L44 32 L48 32 L54 32" 
+        stroke="url(#pulseGradient)" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none"/>
+  
+  <line x1="20" y1="32" x2="36" y2="32" 
+        stroke="#00CCFF" 
+        stroke-width="3.5" 
+        stroke-linecap="round"/>
+  
+  <circle cx="28" cy="32" r="3.5" fill="#00CCFF"/>
+  
+  <defs>
+    <linearGradient id="pulseGradient" x1="2" y1="28" x2="54" y2="28">
+      <stop offset="0%" stop-color="#B800E6"/>
+      <stop offset="50%" stop-color="#00CCFF"/>
+      <stop offset="100%" stop-color="#B800E6"/>
+    </linearGradient>
+  </defs>
+</svg>
