@@ -9,18 +9,30 @@ export default function AlertHistoryPage() {
   const [alerts, setAlerts] = useState<AlertHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Filters
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   useEffect(() => {
-    loadAlerts();
+    loadAlerts(true); // Show loading spinner on initial load
+    
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(() => {
+      loadAlerts(false); // No loading spinner on auto-refresh
+    }, 15000);
+    
+    // Cleanup on unmount
+    return () => clearInterval(interval);
   }, [severityFilter, statusFilter]);
 
-  const loadAlerts = async () => {
+  const loadAlerts = async (showLoadingSpinner = false) => {
     try {
-      setLoading(true);
+      setRefreshing(true);
+      if (showLoadingSpinner) {
+        setLoading(true);
+      }
       const params: any = { limit: 100 };
       if (severityFilter) params.severity = severityFilter;
       if (statusFilter) params.status = statusFilter;
@@ -33,6 +45,7 @@ export default function AlertHistoryPage() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -107,10 +120,25 @@ export default function AlertHistoryPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-          <span>Home</span>
-          <span>›</span>
-          <span className="text-cyan-400">Alert History</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span>Home</span>
+            <span>›</span>
+            <span className="text-cyan-400">Alert History</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            {refreshing ? (
+              <>
+                <RefreshCw className="h-3 w-3 text-cyan-400 animate-spin" />
+                <span className="text-cyan-400 font-semibold">Updating...</span>
+              </>
+            ) : (
+              <>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-slate-500">Auto-updating every 15s</span>
+              </>
+            )}
+          </div>
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Alert History</h1>
         <p className="text-slate-400">Review all alerts sent for your monitored APIs</p>
@@ -172,11 +200,12 @@ export default function AlertHistoryPage() {
         </div>
         
         <button
-          onClick={loadAlerts}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+          onClick={() => loadAlerts(false)}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700 disabled:opacity-50"
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 

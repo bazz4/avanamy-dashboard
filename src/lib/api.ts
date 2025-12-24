@@ -48,6 +48,13 @@ import type {
   ApiSpec,
   SpecVersion,
   SpecDocs,
+  WatchedAPI,
+  AlertConfig,
+  AlertHistory,
+  EndpointHealth,
+  EndpointHealthSummary,
+  WatchedAPIHealthSummary,
+  VersionDiff, // ADD THIS
 } from "./types";
 
 export function getProviders(): Promise<Provider[]> {
@@ -64,9 +71,6 @@ export function getSpecsForProduct(productId: string): Promise<ApiSpec[]> {
   return apiGet<ApiSpec[]>(`/products/${productId}/specs`);
 }
 
-export function getSpecVersions(specId: string): Promise<SpecVersion[]> {
-  return apiGet<SpecVersion[]>(`/api-specs/${specId}/versions`);
-}
 
 export async function getSpecDocs(specId: string) {
   // Fetch plain text markdown
@@ -108,8 +112,6 @@ export function uploadNewSpecVersion(
 }
 
 // === Phase 6: Watched APIs ===
-
-import type { WatchedAPI, AlertConfig, AlertHistory, EndpointHealth, EndpointHealthSummary, WatchedAPIHealthSummary } from "./types";
 
 async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -264,4 +266,17 @@ export function getEndpointHealthSummary(
 export function getAllHealthSummary(hours?: number): Promise<WatchedAPIHealthSummary[]> {
   const query = hours ? `?hours=${hours}` : '';
   return apiGet<WatchedAPIHealthSummary[]>(`/health/summary${query}`);
+}
+
+// Spec Versions & Diffs
+export function getSpecVersions(specId: string): Promise<SpecVersion[]> {
+  return apiGet<SpecVersion[]>(`/api-specs/${specId}/versions`);
+}
+
+export function getVersionDetail(specId: string, versionId: number): Promise<SpecVersion> {
+  return apiGet<SpecVersion>(`/api-specs/${specId}/versions/${versionId}`);
+}
+
+export function getVersionDiff(specId: string, versionId: number): Promise<VersionDiff> {
+  return apiGet<VersionDiff>(`/api-specs/${specId}/versions/${versionId}/diff`);
 }

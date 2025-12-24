@@ -8,7 +8,7 @@ import { AddWatchedAPIModal } from '@/components/AddWatchedAPIModal';
 import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
 
 import { ConfirmDialog } from '@/components/ConfirmationDialog';
-import { Search, Edit2, Trash2 } from 'lucide-react';
+import { Search, Edit2, Trash2, GitBranch } from 'lucide-react';
 
 export default function WatchedAPIsPage() {
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
@@ -20,14 +20,26 @@ export default function WatchedAPIsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [apiToDelete, setApiToDelete] = useState<WatchedAPI | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadWatchedAPIs();
+    loadWatchedAPIs(true); // Show loading spinner on initial load
+    
+    // Auto-refresh every 10 seconds (no loading spinner)
+    const interval = setInterval(() => {
+      loadWatchedAPIs(false);
+    }, 10000);
+    
+    // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
 
-  const loadWatchedAPIs = async () => {
+  const loadWatchedAPIs = async (showLoadingSpinner = false) => {
     try {
-      setLoading(true);
+      setRefreshing(true);
+      if (showLoadingSpinner) {
+        setLoading(true);
+      }
       const data = await getWatchedAPIs();
       setWatchedAPIs(data);
       setError(null);
@@ -36,6 +48,7 @@ export default function WatchedAPIsPage() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -147,10 +160,25 @@ export default function WatchedAPIsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-          <span>Home</span>
-          <span>›</span>
-          <span className="text-cyan-400">Watched APIs</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span>Home</span>
+            <span>›</span>
+            <span className="text-cyan-400">Watched APIs</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            {refreshing ? (
+              <>
+                <RefreshCw className="h-3 w-3 text-cyan-400 animate-spin" />
+                <span className="text-cyan-400 font-semibold">Updating...</span>
+              </>
+            ) : (
+              <>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-slate-500">Auto-updating every 10s</span>
+              </>
+            )}
+          </div>
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Watched APIs</h1>
         <p className="text-slate-400">Monitor external APIs for changes and breaking updates</p>
@@ -166,11 +194,12 @@ export default function WatchedAPIsPage() {
           Add Watched API
         </button>
         <button 
-          onClick={loadWatchedAPIs}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+          onClick={() => loadWatchedAPIs()}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700 disabled:opacity-50"
         >
-          <RefreshCw className="h-5 w-5" />
-          Refresh All
+          <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh All'}
         </button>
       </div>
 
@@ -435,9 +464,18 @@ function APICard({
           <RefreshCw className={`h-4 w-4 inline mr-2 ${polling ? 'animate-spin' : ''}`} />
           {polling ? 'Polling...' : 'Poll Now'}
         </button>
+        {api.api_spec_id && (
+          <button 
+            onClick={() => window.location.href = `/specs/${api.api_spec_id}/versions`}
+            className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all"
+          >
+            <GitBranch className="h-4 w-4 inline mr-2" />
+            View Versions
+          </button>
+        )}
         <button 
           onClick={() => onEdit(api)}
-          className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all"
+          className="px-4 py-2 bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/30 hover:border-slate-400 font-semibold rounded-lg transition-all"
         >
           <Edit2 className="h-4 w-4 inline mr-2" />
           Edit
@@ -449,7 +487,7 @@ function APICard({
           <Trash2 className="h-4 w-4 inline mr-2" />
           Delete
         </button>
-      </div>      
+      </div>
     </div>
   );
 }

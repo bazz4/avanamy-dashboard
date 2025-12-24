@@ -12,14 +12,24 @@ export default function HealthDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeWindow, setTimeWindow] = useState(24);
-
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
-    loadData();
+    loadData(true); // Show loading spinner on initial load
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      loadData(false); // No loading spinner on auto-refresh
+    }, 30000);
+    
+    // Cleanup on unmount
+    return () => clearInterval(interval);
   }, [timeWindow]);
-
-  const loadData = async () => {
+  const loadData = async (showLoadingSpinner = false) => {
     try {
-      setLoading(true);
+      setRefreshing(true);
+      if (showLoadingSpinner) {
+        setLoading(true);
+      }
       const [summaries, apis] = await Promise.all([
         getAllHealthSummary(timeWindow),
         getWatchedAPIs()
@@ -32,6 +42,7 @@ export default function HealthDashboardPage() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -75,10 +86,25 @@ export default function HealthDashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-          <span>Home</span>
-          <span>›</span>
-          <span className="text-cyan-400">Health Dashboard</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span>Home</span>
+            <span>›</span>
+            <span className="text-cyan-400">Health Dashboard</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            {refreshing ? (
+              <>
+                <RefreshCw className="h-3 w-3 text-cyan-400 animate-spin" />
+                <span className="text-cyan-400 font-semibold">Updating...</span>
+              </>
+            ) : (
+              <>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-slate-500">Auto-updating every 30s</span>
+              </>
+            )}
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <div>
@@ -97,11 +123,12 @@ export default function HealthDashboardPage() {
               <option value={168}>Last 7 days</option>
             </select>
             <button
-              onClick={loadData}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+              onClick={() => loadData(false)}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700 disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>

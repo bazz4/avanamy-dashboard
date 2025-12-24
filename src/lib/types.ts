@@ -21,12 +21,12 @@ export interface ApiSpec {
 }
 
 export interface SpecVersion {
-  id: string;
-  version: number;           // numeric v
+  id?: string;               // Optional since backend might not return it
+  version: number;           // numeric version
   label?: string;            // "v4" if backend gives it
   changelog?: string;
   created_at: string;
-  diff?: DiffInfo | null;    // Diff from previous version
+  diff?: any;                // Diff from previous version (flexible type for now)
   summary?: string | null;   // AI-generated summary
 }
 
@@ -140,4 +140,12 @@ export interface WatchedAPIHealthSummary {
   avg_response_time_ms?: number;
   uptime_percentage: number;
   last_checked: string;
+}
+
+export interface VersionDiff {
+  version_id: number;
+  version: number;
+  diff: any;
+  summary?: string;
+  created_at: string;
 }
