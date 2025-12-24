@@ -1,16 +1,25 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock } from 'lucide-react';
-import { getWatchedAPIs, triggerPoll } from '@/lib/api';
+import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X } from 'lucide-react';
+import { getWatchedAPIs, triggerPoll, deleteWatchedAPI } from '@/lib/api';
 import type { WatchedAPI } from '@/lib/types';
 import { AddWatchedAPIModal } from '@/components/AddWatchedAPIModal';
+import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
+
+import { ConfirmDialog } from '@/components/ConfirmationDialog';
+import { Search, Edit2, Trash2 } from 'lucide-react';
 
 export default function WatchedAPIsPage() {
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAPI, setSelectedAPI] = useState<WatchedAPI | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [apiToDelete, setApiToDelete] = useState<WatchedAPI | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadWatchedAPIs();
@@ -38,6 +47,28 @@ export default function WatchedAPIsPage() {
     } catch (err) {
       console.error('Failed to trigger poll:', err);
     }
+  };
+
+  const handleDelete = async (api: WatchedAPI) => {
+    setApiToDelete(api);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!apiToDelete) return;
+    
+    try {
+      await deleteWatchedAPI(apiToDelete.id);
+      await loadWatchedAPIs();
+    } catch (err) {
+      console.error('Failed to delete watched API:', err);
+      alert('Failed to delete watched API');
+    }
+  };
+
+  const handleEdit = (api: WatchedAPI) => {
+    setSelectedAPI(api);
+    setShowEditModal(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -89,6 +120,18 @@ export default function WatchedAPIsPage() {
     alerts: watchedAPIs.reduce((sum, api) => sum + (api.consecutive_failures || 0), 0),
   };
 
+  // Filter watched APIs based on search query
+  const filteredAPIs = watchedAPIs.filter(api => {
+    if (!searchQuery) return true;
+    
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      api.provider_name?.toLowerCase().includes(searchLower) ||
+      api.product_name?.toLowerCase().includes(searchLower) ||
+      api.spec_url.toLowerCase().includes(searchLower)
+    );
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -131,6 +174,28 @@ export default function WatchedAPIsPage() {
         </button>
       </div>
 
+      {/* Search Bar */}
+      {watchedAPIs.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by provider, product, or URL..."
+            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
@@ -172,22 +237,39 @@ export default function WatchedAPIsPage() {
 
       {/* API Cards */}
       <div className="space-y-6">
-        {watchedAPIs.length === 0 ? (
+        {filteredAPIs.length === 0 && searchQuery ? (
+          <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
+            <Search className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-400 mb-2">No Results Found</h3>
+            <p className="text-slate-500 mb-4">No APIs match "{searchQuery}"</p>
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+            >
+              Clear Search
+            </button>
+          </div>
+        ) : filteredAPIs.length === 0 ? (
           <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
             <Radio className="h-12 w-12 text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-400 mb-2">No Watched APIs</h3>
             <p className="text-slate-500 mb-4">Get started by adding your first API to monitor</p>
-            <button className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all">
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+            >
               <Plus className="h-5 w-5 inline mr-2" />
               Add Your First API
             </button>
           </div>
         ) : (
-          watchedAPIs.map((api) => (
+          filteredAPIs.map((api) => (
             <APICard 
               key={api.id} 
               api={api} 
               onPollNow={handlePollNow}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
               getStatusColor={getStatusColor}
               getStatusDot={getStatusDot}
               formatTimestamp={formatTimestamp}
@@ -195,6 +277,25 @@ export default function WatchedAPIsPage() {
           ))
         )}
       </div>
+
+      {/* Edit Modal */}
+      <EditWatchedAPIModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={loadWatchedAPIs}
+        watchedAPI={selectedAPI}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Watched API"
+        message={`Are you sure you want to delete monitoring for ${apiToDelete?.provider_name && apiToDelete?.product_name ? `${apiToDelete.provider_name} - ${apiToDelete.product_name}` : 'this API'}? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmStyle="danger"
+      />
       {/* Add API Modal */}
       <AddWatchedAPIModal
         isOpen={showAddModal}
@@ -246,12 +347,16 @@ function StatCard({
 function APICard({ 
   api, 
   onPollNow,
+  onEdit,
+  onDelete,
   getStatusColor,
   getStatusDot,
   formatTimestamp
 }: { 
   api: WatchedAPI; 
   onPollNow: (id: string) => void;
+  onEdit: (api: WatchedAPI) => void;
+  onDelete: (api: WatchedAPI) => void;
   getStatusColor: (status: string) => string;
   getStatusDot: (status: string) => string;
   formatTimestamp: (timestamp: string | null) => string;
@@ -330,11 +435,19 @@ function APICard({
           <RefreshCw className={`h-4 w-4 inline mr-2 ${polling ? 'animate-spin' : ''}`} />
           {polling ? 'Polling...' : 'Poll Now'}
         </button>
-        <button className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all">
-          View Health
+        <button 
+          onClick={() => onEdit(api)}
+          className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all"
+        >
+          <Edit2 className="h-4 w-4 inline mr-2" />
+          Edit
         </button>
-        <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 font-semibold rounded-lg transition-all">
-          Configure Alerts
+        <button 
+          onClick={() => onDelete(api)}
+          className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-400 font-semibold rounded-lg transition-all ml-auto"
+        >
+          <Trash2 className="h-4 w-4 inline mr-2" />
+          Delete
         </button>
       </div>      
     </div>
