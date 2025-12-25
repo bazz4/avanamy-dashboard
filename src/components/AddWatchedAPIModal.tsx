@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Loader2 } from 'lucide-react';
 import { getProviders, getProductsForProvider, createWatchedAPI } from '@/lib/api';
 import type { Provider, ApiProduct } from '@/lib/types';
@@ -16,6 +16,7 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   
   const [formData, setFormData] = useState({
     provider_id: '',
@@ -30,12 +31,24 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
     spec_url: '',
   });
 
-  // Load providers on mount
+  // Load providers on mount and handle keyboard/focus
   useEffect(() => {
     if (isOpen) {
       loadProviders();
+      closeButtonRef.current?.focus();
     }
   }, [isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   // Load products when provider changes
   useEffect(() => {
@@ -132,19 +145,21 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-purple-500/20 max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl shadow-purple-500/20 max-w-2xl w-full max-h-[90vh] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="add-api-modal-title">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="text-2xl font-bold text-white">Add Watched API</h2>
-            <p className="text-sm text-slate-400 mt-1">Monitor a new external API for changes</p>
+            <h2 id="add-api-modal-title" className="text-2xl font-bold text-slate-900 dark:text-white">Add Watched API</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Monitor a new external API for changes</p>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Close dialog"
           >
-            <X className="h-5 w-5 text-slate-400" />
+            <X className="h-5 w-5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
           </button>
         </div>
 
@@ -152,14 +167,18 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           {/* Provider Selection */}
           <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-2">
+            <label htmlFor="provider-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Provider *
             </label>
             <select
+              id="provider-select"
               value={formData.provider_id}
               onChange={(e) => setFormData(prev => ({ ...prev, provider_id: e.target.value }))}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={loading}
+              aria-required="true"
+              aria-invalid={!!errors.provider_id}
+              aria-describedby={errors.provider_id ? "provider-error" : undefined}
             >
               <option value="">Select a provider...</option>
               {providers.map((provider) => (
@@ -169,20 +188,24 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
               ))}
             </select>
             {errors.provider_id && (
-              <p className="text-sm text-red-400 mt-1">{errors.provider_id}</p>
+              <p id="provider-error" className="text-sm text-red-400 mt-1" role="alert">{errors.provider_id}</p>
             )}
           </div>
 
           {/* Product Selection */}
           <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-2">
+            <label htmlFor="product-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               API Product *
             </label>
             <select
+              id="product-select"
               value={formData.api_product_id}
               onChange={(e) => setFormData(prev => ({ ...prev, api_product_id: e.target.value }))}
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
               disabled={!formData.provider_id || loading}
+              aria-required="true"
+              aria-invalid={!!errors.api_product_id}
+              aria-describedby={errors.api_product_id ? "product-error" : undefined}
             >
               <option value="">
                 {formData.provider_id ? 'Select a product...' : 'Select a provider first'}
@@ -194,63 +217,70 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
               ))}
             </select>
             {errors.api_product_id && (
-              <p className="text-sm text-red-400 mt-1">{errors.api_product_id}</p>
+              <p id="product-error" className="text-sm text-red-400 mt-1" role="alert">{errors.api_product_id}</p>
             )}
           </div>
 
           {/* Spec URL */}
           <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-2">
+            <label htmlFor="spec-url" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               OpenAPI Spec URL *
             </label>
             <input
+              id="spec-url"
               type="url"
               value={formData.spec_url}
               onChange={(e) => setFormData(prev => ({ ...prev, spec_url: e.target.value }))}
               placeholder="https://api.example.com/openapi.yaml"
-              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              aria-required="true"
+              aria-invalid={!!errors.spec_url}
+              aria-describedby={errors.spec_url ? "spec-url-error spec-url-help" : "spec-url-help"}
             />
             {errors.spec_url && (
-              <p className="text-sm text-red-400 mt-1">{errors.spec_url}</p>
+              <p id="spec-url-error" className="text-sm text-red-400 mt-1" role="alert">{errors.spec_url}</p>
             )}
-            <p className="text-xs text-slate-500 mt-2">
+            <p id="spec-url-help" className="text-xs text-slate-500 mt-2">
               The URL must be publicly accessible and return an OpenAPI specification (JSON or YAML)
             </p>
           </div>
 
           {/* Polling Frequency */}
           <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-2">
-              Polling Frequency
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {(['hourly', 'daily', 'weekly'] as const).map((freq) => (
-                <button
-                  key={freq}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, polling_frequency: freq }))}
-                  className={`px-4 py-3 rounded-lg font-semibold transition-all ${
-                    formData.polling_frequency === freq
-                      ? 'bg-purple-500/20 text-purple-400 border-2 border-purple-500'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              How often should we check this API for changes?
-            </p>
+            <fieldset>
+              <legend className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Polling Frequency
+              </legend>
+              <div className="grid grid-cols-3 gap-3" role="group" aria-describedby="polling-help">
+                {(['hourly', 'daily', 'weekly'] as const).map((freq) => (
+                  <button
+                    key={freq}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, polling_frequency: freq }))}
+                    className={`px-4 py-3 rounded-lg font-semibold transition-all ${
+                      formData.polling_frequency === freq
+                        ? 'bg-purple-500/20 text-purple-400 border-2 border-purple-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+                    }`}
+                    aria-pressed={formData.polling_frequency === freq}
+                  >
+                    {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <p id="polling-help" className="text-xs text-slate-500 mt-2">
+                How often should we check this API for changes?
+              </p>
+            </fieldset>
           </div>
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-800 bg-slate-950/50">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+            className="px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700"
             disabled={submitting}
           >
             Cancel
@@ -258,16 +288,17 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            aria-busy={submitting}
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Adding...
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>Adding...</span>
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" aria-hidden="true" />
                 Add Watched API
               </>
             )}

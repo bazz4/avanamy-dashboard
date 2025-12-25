@@ -47,13 +47,13 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
        {/* Header/Nav */}
-      <header className="relative border-b border-slate-800/50 backdrop-blur-sm">
+      <header className="relative border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AvanamyLogo size={40} variant="color" />
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Avanamy
                 </h1>
                 <p className="text-xs text-slate-500">API Monitoring Platform</p>
@@ -62,19 +62,19 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               <Link
                 href="/watched-apis"
-                className="px-4 py-2 text-slate-300 hover:text-white font-semibold transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
               >
                 Dashboard
               </Link>
               <Link
                 href="/alerts"
-                className="px-4 py-2 text-slate-300 hover:text-white font-semibold transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
               >
                 Alerts
               </Link>
               <Link
                 href="/health"
-                className="px-4 py-2 text-slate-300 hover:text-white font-semibold transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
               >
                 Health
               </Link>
@@ -86,25 +86,25 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20">
         {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900 to-cyan-900/20" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-600/10 via-transparent to-transparent" />
-        
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-100/30 via-slate-50 to-cyan-100/30 dark:from-purple-900/20 dark:via-slate-900 dark:to-cyan-900/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-200/20 dark:from-purple-600/10 via-transparent to-transparent" />
+
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full text-purple-400 text-sm font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full text-purple-600 dark:text-purple-400 text-sm font-semibold mb-6">
               <Zap className="h-4 w-4" />
               Automated API Monitoring
             </div>
-            
-            <h1 className="text-6xl font-bold text-white mb-6 tracking-tight">
+
+            <h1 className="text-6xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
               Never Miss an
-              <span className="block mt-2 bg-gradient-to-r from-purple-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="block mt-2 bg-gradient-to-r from-purple-600 via-cyan-500 to-purple-600 dark:from-purple-400 dark:via-cyan-400 dark:to-purple-400 bg-clip-text text-transparent">
                 API Change Again
               </span>
             </h1>
-            
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-12">
-              Avanamy automatically monitors external APIs, detects breaking changes, 
+
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12">
+              Avanamy automatically monitors external APIs, detects breaking changes,
               and alerts your team before issues impact production.
             </p>
 
@@ -118,7 +118,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/health"
-                className="flex items-center gap-2 px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all border border-slate-700 text-lg"
+                className="flex items-center gap-2 px-8 py-4 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all border border-slate-300 dark:border-slate-700 text-lg"
               >
                 View Dashboard
               </Link>
@@ -158,13 +158,13 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 border-t border-slate-800">
+      <section className="py-20 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
               Powerful API Monitoring Features
             </h2>
-            <p className="text-lg text-slate-400">
+            <p className="text-lg text-slate-600 dark:text-slate-400">
               Stay ahead of breaking changes with intelligent automation
             </p>
           </div>
@@ -218,18 +218,18 @@ export default function LandingPage() {
 
       {/* Recent Activity */}
       {!loading && (watchedAPIs.length > 0 || recentAlerts.length > 0) && (
-        <section className="py-20 border-t border-slate-800">
+        <section className="py-20 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-8">
-            <h2 className="text-3xl font-bold text-white mb-8">Recent Activity</h2>
-            
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Recent Activity</h2>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Monitored APIs */}
-              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <div className="bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white">Monitored APIs</h3>
-                  <Link 
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Monitored APIs</h3>
+                  <Link
                     href="/watched-apis"
-                    className="text-sm text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                    className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold flex items-center gap-1"
                   >
                     View All
                     <ArrowRight className="h-4 w-4" />
@@ -237,13 +237,13 @@ export default function LandingPage() {
                 </div>
                 <div className="space-y-3">
                   {watchedAPIs.slice(0, 3).map((api) => (
-                    <div 
+                    <div
                       key={api.id}
-                      className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <div>
-                        <p className="font-semibold text-white text-sm">
-                          {api.provider_name && api.product_name 
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm">
+                          {api.provider_name && api.product_name
                             ? `${api.provider_name} - ${api.product_name}`
                             : 'API Monitor'}
                         </p>
@@ -253,8 +253,8 @@ export default function LandingPage() {
                       </div>
                       <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                         api.status === 'healthy' || api.status === 'active'
-                          ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                          : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30'
+                          : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30'
                       }`}>
                         {api.status || 'Active'}
                       </div>
@@ -270,12 +270,12 @@ export default function LandingPage() {
               </div>
 
               {/* Recent Alerts */}
-              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <div className="bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white">Recent Alerts</h3>
-                  <Link 
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recent Alerts</h3>
+                  <Link
                     href="/alert-history"
-                    className="text-sm text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                    className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold flex items-center gap-1"
                   >
                     View All
                     <ArrowRight className="h-4 w-4" />
@@ -283,13 +283,13 @@ export default function LandingPage() {
                 </div>
                 <div className="space-y-3">
                   {recentAlerts.slice(0, 3).map((alert) => (
-                    <div 
+                    <div
                       key={alert.id}
-                      className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <div>
-                        <p className="font-semibold text-white text-sm">
-                          {alert.provider_name && alert.product_name 
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm">
+                          {alert.provider_name && alert.product_name
                             ? `${alert.provider_name} - ${alert.product_name}`
                             : 'Alert'}
                         </p>
@@ -299,10 +299,10 @@ export default function LandingPage() {
                       </div>
                       <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                         alert.severity === 'critical'
-                          ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                          ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30'
                           : alert.severity === 'warning'
-                          ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
-                          : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                          ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30'
                       }`}>
                         {alert.severity}
                       </div>
@@ -322,12 +322,12 @@ export default function LandingPage() {
       )}
 
       {/* CTA Section */}
-      <section className="py-20 border-t border-slate-800">
+      <section className="py-20 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-8 text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
             Ready to Start Monitoring?
           </h2>
-          <p className="text-lg text-slate-400 mb-8">
+          <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
             Add your first API and start getting alerts about changes that matter.
           </p>
           <Link
@@ -365,12 +365,12 @@ function QuickStatCard({
   return (
     <div className="relative group">
       <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl p-6 hover:border-purple-500/50 transition-all">
+      <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500/50 transition-all shadow-sm dark:shadow-none">
         <div className={`inline-flex p-3 rounded-lg mb-4 ${colorClasses} border`}>
           {icon}
         </div>
-        <p className="text-3xl font-bold text-white mb-1">{value}</p>
-        <p className="text-sm text-slate-400 font-medium">{label}</p>
+        <p className="text-3xl font-bold text-slate-900 dark:text-white mb-1">{value}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{label}</p>
       </div>
     </div>
   );
@@ -400,13 +400,13 @@ function FeatureCard({
     <Link href={link}>
       <div className="group relative h-full">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-cyan-600/10 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl p-8 hover:border-purple-500/50 transition-all h-full">
+        <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl p-8 hover:border-purple-500/50 transition-all h-full shadow-sm dark:shadow-none">
           <div className={`inline-flex p-4 rounded-xl mb-6 transition-colors ${colorClasses}`}>
             {icon}
           </div>
-          <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-          <p className="text-slate-400 leading-relaxed">{description}</p>
-          <div className="mt-6 flex items-center text-purple-400 font-semibold text-sm group-hover:translate-x-1 transition-transform">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{description}</p>
+          <div className="mt-6 flex items-center text-purple-600 dark:text-purple-400 font-semibold text-sm group-hover:translate-x-1 transition-transform">
             Learn more
             <ArrowRight className="h-4 w-4 ml-2" />
           </div>

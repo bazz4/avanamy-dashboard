@@ -4,12 +4,14 @@ interface AvanamyLogoProps {
   size?: number;
   variant?: 'color' | 'white' | 'purple';
   className?: string;
+  alt?: string;
 }
 
-export const AvanamyLogo: React.FC<AvanamyLogoProps> = ({ 
-  size = 56, 
+export const AvanamyLogo: React.FC<AvanamyLogoProps> = ({
+  size = 56,
   variant = 'color',
-  className = '' 
+  className = '',
+  alt = 'Avanamy Logo'
 }) => {
   const renderColorVersion = () => (
     <>
@@ -88,13 +90,15 @@ export const AvanamyLogo: React.FC<AvanamyLogoProps> = ({
   );
 
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 56 56" 
-      fill="none" 
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 56 56"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      role="img"
+      aria-label={alt}
     >
       {variant === 'color' && renderColorVersion()}
       {variant === 'white' && renderWhiteVersion()}

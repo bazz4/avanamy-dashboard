@@ -87,13 +87,13 @@ export default function WatchedAPIsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'text-green-400 bg-green-500/10 border-green-500/30';
+        return 'text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/30';
       case 'warning':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
       case 'error':
-        return 'text-red-400 bg-red-500/10 border-red-500/30';
+        return 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/30';
       default:
-        return 'text-slate-400 bg-slate-500/10 border-slate-500/30';
+        return 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30';
     }
   };
 
@@ -148,7 +148,7 @@ export default function WatchedAPIsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-3 text-slate-400">
+        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
           <RefreshCw className="h-6 w-6 animate-spin" />
           <span>Loading watched APIs...</span>
         </div>
@@ -164,13 +164,13 @@ export default function WatchedAPIsPage() {
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <span>Home</span>
             <span>›</span>
-            <span className="text-cyan-400">Watched APIs</span>
+            <span className="text-cyan-600 dark:text-cyan-400">Watched APIs</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             {refreshing ? (
               <>
-                <RefreshCw className="h-3 w-3 text-cyan-400 animate-spin" />
-                <span className="text-cyan-400 font-semibold">Updating...</span>
+                <RefreshCw className="h-3 w-3 text-cyan-600 dark:text-cyan-400 animate-spin" />
+                <span className="text-cyan-600 dark:text-cyan-400 font-semibold">Updating...</span>
               </>
             ) : (
               <>
@@ -180,23 +180,23 @@ export default function WatchedAPIsPage() {
             )}
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Watched APIs</h1>
-        <p className="text-slate-400">Monitor external APIs for changes and breaking updates</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Watched APIs</h1>
+        <p className="text-slate-600 dark:text-slate-400">Monitor external APIs for changes and breaking updates</p>
       </div>
 
       {/* Actions */}
       <div className="flex gap-4">
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
         >
           <Plus className="h-5 w-5" />
           Add Watched API
         </button>
-        <button 
+        <button
           onClick={() => loadWatchedAPIs()}
           disabled={refreshing}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700 disabled:opacity-50"
         >
           <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
           {refreshing ? 'Refreshing...' : 'Refresh All'}
@@ -212,12 +212,12 @@ export default function WatchedAPIsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by provider, product, or URL..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             >
               <X className="h-5 w-5" />
             </button>
@@ -259,7 +259,7 @@ export default function WatchedAPIsPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
@@ -267,11 +267,11 @@ export default function WatchedAPIsPage() {
       {/* API Cards */}
       <div className="space-y-6">
         {filteredAPIs.length === 0 && searchQuery ? (
-          <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
-            <Search className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">No Results Found</h3>
+          <div className="text-center py-12 bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <Search className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">No Results Found</h3>
             <p className="text-slate-500 mb-4">No APIs match "{searchQuery}"</p>
-            <button 
+            <button
               onClick={() => setSearchQuery('')}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
             >
@@ -279,11 +279,11 @@ export default function WatchedAPIsPage() {
             </button>
           </div>
         ) : filteredAPIs.length === 0 ? (
-          <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
-            <Radio className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">No Watched APIs</h3>
+          <div className="text-center py-12 bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <Radio className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">No Watched APIs</h3>
             <p className="text-slate-500 mb-4">Get started by adding your first API to monitor</p>
-            <button 
+            <button
               onClick={() => setShowAddModal(true)}
               className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
             >
@@ -357,12 +357,12 @@ function StatCard({
   }[color];
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all hover:-translate-y-1">
+    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all hover:-translate-y-1">
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-sm text-slate-500 font-medium mb-2">{label}</p>
-          <p className="text-3xl font-bold text-white">{value}</p>
-          <p className="text-xs text-slate-600 mt-2">{change}</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-600 mt-2">{change}</p>
         </div>
         <div className={`p-3 rounded-lg ${colorClasses}`}>
           {icon}
@@ -399,16 +399,16 @@ function APICard({
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all hover:-translate-y-1">
+    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all hover:-translate-y-1">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-white mb-2">
-            {api.provider_name && api.product_name 
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            {api.provider_name && api.product_name
               ? `${api.provider_name} - ${api.product_name}`
               : api.product_name || api.provider_name || 'Unknown API'}
           </h3>
-          <p className="text-sm text-cyan-400 font-mono break-all">
+          <p className="text-sm text-cyan-700 dark:text-cyan-400 font-mono break-all">
             {api.spec_url}
           </p>
         </div>
@@ -419,12 +419,12 @@ function APICard({
       </div>
 
       {/* Metadata */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 py-6 border-t border-b border-slate-800">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 py-6 border-t border-b border-slate-200 dark:border-slate-800">
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Polling Frequency
           </p>
-          <p className="text-sm text-slate-300 font-semibold">
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
             {api.polling_frequency || 'Not set'}
           </p>
         </div>
@@ -432,7 +432,7 @@ function APICard({
           <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Last Polled
           </p>
-          <p className="text-sm text-slate-300 font-semibold">
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
             {formatTimestamp(api.last_polled_at)}
           </p>
         </div>
@@ -440,7 +440,7 @@ function APICard({
           <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Current Version
           </p>
-          <p className="text-sm text-purple-400 font-bold">
+          <p className="text-sm text-purple-600 dark:text-purple-400 font-bold">
             {api.last_version_detected || 'Unknown'}
           </p>
         </div>
@@ -448,7 +448,7 @@ function APICard({
           <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Consecutive Failures
           </p>
-          <p className="text-sm text-slate-300 font-semibold">
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
             {api.consecutive_failures || 0}
           </p>
         </div>

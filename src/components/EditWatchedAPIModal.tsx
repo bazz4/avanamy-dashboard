@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { updateWatchedAPI } from '@/lib/api';
 import type { WatchedAPI } from '@/lib/types';
@@ -14,6 +14,7 @@ interface EditWatchedAPIModalProps {
 
 export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: EditWatchedAPIModalProps) {
   const [submitting, setSubmitting] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   
   const [formData, setFormData] = useState({
     polling_frequency: 'daily' as 'hourly' | 'daily' | 'weekly',
@@ -28,6 +29,22 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
       });
     }
   }, [watchedAPI]);
+
+  useEffect(() => {
+    if (isOpen) {
+      closeButtonRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,23 +67,25 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
   if (!isOpen || !watchedAPI) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-purple-500/20 max-w-2xl w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl shadow-purple-500/20 max-w-2xl w-full" role="dialog" aria-modal="true" aria-labelledby="edit-api-modal-title">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="text-2xl font-bold text-white">Edit Watched API</h2>
-            <p className="text-sm text-slate-400 mt-1">
-              {watchedAPI.provider_name && watchedAPI.product_name 
+            <h2 id="edit-api-modal-title" className="text-2xl font-bold text-slate-900 dark:text-white">Edit Watched API</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              {watchedAPI.provider_name && watchedAPI.product_name
                 ? `${watchedAPI.provider_name} - ${watchedAPI.product_name}`
                 : watchedAPI.spec_url}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Close dialog"
           >
-            <X className="h-5 w-5 text-slate-400" />
+            <X className="h-5 w-5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
           </button>
         </div>
 
@@ -74,7 +93,7 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Polling Frequency */}
           <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Polling Frequency
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -86,7 +105,7 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
                   className={`px-4 py-3 rounded-lg font-semibold transition-all ${
                     formData.polling_frequency === freq
                       ? 'bg-purple-500/20 text-purple-400 border-2 border-purple-500'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
                   }`}
                 >
                   {freq.charAt(0).toUpperCase() + freq.slice(1)}
@@ -100,37 +119,37 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
 
           {/* Polling Enabled */}
           <div>
-            <label className="flex items-center gap-3 p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750 transition-colors">
+            <label className="flex items-center gap-3 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-750 transition-colors">
               <input
                 type="checkbox"
                 checked={formData.polling_enabled}
                 onChange={(e) => setFormData(prev => ({ ...prev, polling_enabled: e.target.checked }))}
-                className="w-5 h-5 rounded border-slate-600 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900"
+                className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-purple-500 focus:ring-purple-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
               />
               <div className="flex-1">
-                <div className="font-semibold text-white">Enable Polling</div>
-                <div className="text-xs text-slate-400">Automatically poll this API on schedule</div>
+                <div className="font-semibold text-slate-900 dark:text-white">Enable Polling</div>
+                <div className="text-xs text-slate-600 dark:text-slate-400">Automatically poll this API on schedule</div>
               </div>
             </label>
           </div>
 
           {/* API Info (Read-only) */}
-          <div className="pt-6 border-t border-slate-800">
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
             <p className="text-sm font-semibold text-slate-500 mb-3">API Information (read-only)</p>
             <div className="space-y-2">
               <div>
-                <p className="text-xs text-slate-600">Spec URL</p>
-                <p className="text-sm text-slate-300 font-mono break-all">{watchedAPI.spec_url}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-600">Spec URL</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 font-mono break-all">{watchedAPI.spec_url}</p>
               </div>
               <div className="grid grid-cols-2 gap-4 mt-3">
                 <div>
-                  <p className="text-xs text-slate-600">Status</p>
-                  <p className="text-sm text-slate-300 capitalize">{watchedAPI.status}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-600">Status</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 capitalize">{watchedAPI.status}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-600">Last Polled</p>
-                  <p className="text-sm text-slate-300">
-                    {watchedAPI.last_polled_at 
+                  <p className="text-xs text-slate-600 dark:text-slate-600">Last Polled</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                    {watchedAPI.last_polled_at
                       ? new Date(watchedAPI.last_polled_at).toLocaleString()
                       : 'Never'}
                   </p>
@@ -141,11 +160,11 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-800 bg-slate-950/50">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+            className="px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700"
             disabled={submitting}
           >
             Cancel
@@ -153,16 +172,17 @@ export function EditWatchedAPIModal({ isOpen, onClose, onSuccess, watchedAPI }: 
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            aria-busy={submitting}
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>Saving...</span>
               </>
             ) : (
               <>
-                <Save className="h-4 w-4" />
+                <Save className="h-4 w-4" aria-hidden="true" />
                 Save Changes
               </>
             )}

@@ -74,7 +74,7 @@ export default function HealthDashboardPage() {
   if (loading && healthSummaries.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-3 text-slate-400">
+        <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">
           <RefreshCw className="h-6 w-6 animate-spin" />
           <span>Loading health data...</span>
         </div>
@@ -87,35 +87,35 @@ export default function HealthDashboardPage() {
       {/* Header */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500">
             <span>Home</span>
             <span>›</span>
-            <span className="text-cyan-400">Health Dashboard</span>
+            <span className="text-cyan-600 dark:text-cyan-400">Health Dashboard</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             {refreshing ? (
               <>
-                <RefreshCw className="h-3 w-3 text-cyan-400 animate-spin" />
-                <span className="text-cyan-400 font-semibold">Updating...</span>
+                <RefreshCw className="h-3 w-3 text-cyan-600 dark:text-cyan-400 animate-spin" />
+                <span className="text-cyan-600 dark:text-cyan-400 font-semibold">Updating...</span>
               </>
             ) : (
               <>
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-slate-500">Auto-updating every 30s</span>
+                <div className="h-2 w-2 rounded-full bg-green-500 dark:bg-green-500 animate-pulse"></div>
+                <span className="text-slate-500 dark:text-slate-500">Auto-updating every 30s</span>
               </>
             )}
           </div>
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Health Dashboard</h1>
-            <p className="text-slate-400">Monitor endpoint health and performance across all APIs</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Health Dashboard</h1>
+            <p className="text-slate-600 dark:text-slate-400">Monitor endpoint health and performance across all APIs</p>
           </div>
           <div className="flex items-center gap-3">
             <select
               value={timeWindow}
               onChange={(e) => setTimeWindow(Number(e.target.value))}
-              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value={1}>Last 1 hour</option>
               <option value={6}>Last 6 hours</option>
@@ -125,7 +125,7 @@ export default function HealthDashboardPage() {
             <button
               onClick={() => loadData(false)}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -165,7 +165,7 @@ export default function HealthDashboardPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+        <div className="p-4 bg-red-500/10 dark:bg-red-500/10 border border-red-500/30 dark:border-red-500/30 rounded-lg text-red-400 dark:text-red-400">
           {error}
         </div>
       )}
@@ -174,8 +174,8 @@ export default function HealthDashboardPage() {
       {healthSummaries.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Uptime Chart */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Uptime Percentage</h3>
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Uptime Percentage</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={uptimeChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -206,8 +206,8 @@ export default function HealthDashboardPage() {
           </div>
 
           {/* Response Time Chart */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Average Response Time (ms)</h3>
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Average Response Time (ms)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={responseTimeChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -237,21 +237,21 @@ export default function HealthDashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
-          <Activity className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-400 mb-2">No Health Data</h3>
-          <p className="text-slate-500">Start monitoring APIs to see health metrics</p>
+        <div className="text-center py-12 bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <Activity className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">No Health Data</h3>
+          <p className="text-slate-500 dark:text-slate-500">Start monitoring APIs to see health metrics</p>
         </div>
       )}
 
       {/* API Health Cards */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-white">API Health Status</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">API Health Status</h2>
         {healthSummaries.length === 0 ? (
-          <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
-            <AlertCircle className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">No APIs Monitored</h3>
-            <p className="text-slate-500">Add watched APIs to see their health status</p>
+          <div className="text-center py-12 bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <AlertCircle className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">No APIs Monitored</h3>
+            <p className="text-slate-500 dark:text-slate-500">Add watched APIs to see their health status</p>
           </div>
         ) : (
           healthSummaries.map((summary) => (
@@ -285,12 +285,12 @@ function StatCard({
   }[color];
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-slate-500 font-medium mb-2">{label}</p>
-          <p className="text-3xl font-bold text-white">{value}</p>
-          {subtitle && <p className="text-xs text-slate-500 mt-2">{subtitle}</p>}
+          <p className="text-sm text-slate-500 dark:text-slate-500 font-medium mb-2">{label}</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
+          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">{subtitle}</p>}
         </div>
         <div className={`p-3 rounded-lg ${colorClasses}`}>
           {icon}
@@ -319,15 +319,15 @@ function HealthCard({ summary }: { summary: WatchedAPIHealthSummary }) {
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-purple-500/30 transition-all">
+    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500/30 transition-all shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-white mb-2">
-            {summary.provider_name && summary.product_name 
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            {summary.provider_name && summary.product_name
               ? `${summary.provider_name} - ${summary.product_name}`
               : 'Unknown API'}
           </h3>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {summary.healthy_endpoints} / {summary.total_endpoints} endpoints healthy
           </p>
         </div>
@@ -337,26 +337,26 @@ function HealthCard({ summary }: { summary: WatchedAPIHealthSummary }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
+          <p className="text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Endpoints
           </p>
-          <p className="text-lg text-white font-bold">{summary.total_endpoints}</p>
+          <p className="text-lg text-slate-900 dark:text-white font-bold">{summary.total_endpoints}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
+          <p className="text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Avg Response
           </p>
-          <p className="text-lg text-cyan-400 font-bold">
+          <p className="text-lg text-cyan-400 dark:text-cyan-400 font-bold">
             {summary.avg_response_time_ms ? `${Math.round(summary.avg_response_time_ms)}ms` : 'N/A'}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
+          <p className="text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wider font-semibold mb-1">
             Last Check
           </p>
-          <p className="text-sm text-slate-300 font-semibold">
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold">
             {formatTimestamp(summary.last_checked)}
           </p>
         </div>

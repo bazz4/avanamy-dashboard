@@ -74,7 +74,7 @@ export default function AlertConfigsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-3 text-slate-400">
+        <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">
           <RefreshCw className="h-6 w-6 animate-spin" />
           <span>Loading alert configurations...</span>
         </div>
@@ -86,13 +86,13 @@ export default function AlertConfigsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500 mb-2">
           <span>Home</span>
           <span>›</span>
-          <span className="text-cyan-400">Alert Configurations</span>
+          <span className="text-cyan-600 dark:text-cyan-400">Alert Configurations</span>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Alert Configurations</h1>
-        <p className="text-slate-400">Manage alert rules and notification channels</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Alert Configurations</h1>
+        <p className="text-slate-600 dark:text-slate-400">Manage alert rules and notification channels</p>
       </div>
 
       {/* Actions */}
@@ -104,9 +104,9 @@ export default function AlertConfigsPage() {
           <Plus className="h-5 w-5" />
           Add Alert Config
         </button>
-        <button 
+        <button
           onClick={loadAlertConfigs}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-700"
+          className="flex items-center gap-2 px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700"
         >
           <RefreshCw className="h-5 w-5" />
           Refresh
@@ -149,7 +149,7 @@ export default function AlertConfigsPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+        <div className="p-4 bg-red-500/10 dark:bg-red-500/10 border border-red-500/30 dark:border-red-500/30 rounded-lg text-red-400 dark:text-red-400">
           {error}
         </div>
       )}
@@ -157,10 +157,10 @@ export default function AlertConfigsPage() {
       {/* Alert Config Cards */}
       <div className="space-y-6">
         {alertConfigs.length === 0 ? (
-          <div className="text-center py-12 bg-slate-900/30 border border-slate-800 rounded-xl">
-            <Bell className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">No Alert Configurations</h3>
-            <p className="text-slate-500 mb-4">Create your first alert configuration to get notified</p>
+          <div className="text-center py-12 bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <Bell className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-2">No Alert Configurations</h3>
+            <p className="text-slate-500 dark:text-slate-500 mb-4">Create your first alert configuration to get notified</p>
             <button 
               onClick={() => setShowAddModal(true)}
               className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
@@ -212,11 +212,11 @@ function StatCard({
   }[color];
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-slate-500 font-medium mb-2">{label}</p>
-          <p className="text-3xl font-bold text-white">{value}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-500 font-medium mb-2">{label}</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
         </div>
         <div className={`p-3 rounded-lg ${colorClasses}`}>
           {icon}
@@ -258,39 +258,39 @@ function AlertConfigCard({
   };
 
   return (
-    <div className={`bg-slate-900/50 border rounded-xl p-6 transition-all ${
-      config.enabled 
-        ? 'border-slate-800 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10' 
-        : 'border-slate-800 opacity-60'
+    <div className={`bg-white dark:bg-slate-900/50 border rounded-xl p-6 transition-all ${
+      config.enabled
+        ? 'border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10'
+        : 'border-slate-200 dark:border-slate-800 opacity-60'
     }`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-start gap-4 flex-1">
-          <div className="p-3 bg-slate-800 rounded-lg">
+          <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
             {getAlertTypeIcon()}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {config.alert_type.charAt(0).toUpperCase() + config.alert_type.slice(1)} Alert
               </h3>
               {config.enabled ? (
-                <span className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold">
+                <span className="px-3 py-1 rounded-full bg-green-500/10 dark:bg-green-500/10 border border-green-500/30 dark:border-green-500/30 text-green-400 dark:text-green-400 text-xs font-bold">
                   ENABLED
                 </span>
               ) : (
-                <span className="px-3 py-1 rounded-full bg-slate-500/10 border border-slate-500/30 text-slate-400 text-xs font-bold">
+                <span className="px-3 py-1 rounded-full bg-slate-500/10 dark:bg-slate-500/10 border border-slate-500/30 dark:border-slate-500/30 text-slate-400 dark:text-slate-400 text-xs font-bold">
                   DISABLED
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-400 font-mono">{config.destination}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{config.destination}</p>
           </div>
         </div>
       </div>
 
       {/* Alert Triggers */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-6 border-t border-b border-slate-800">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-6 border-t border-b border-slate-200 dark:border-slate-800">
         <TriggerBadge enabled={config.alert_on_breaking_changes} label="Breaking Changes" />
         <TriggerBadge enabled={config.alert_on_non_breaking_changes} label="Non-Breaking Changes" />
         <TriggerBadge enabled={config.alert_on_endpoint_failures} label="Endpoint Failures" />
@@ -311,8 +311,8 @@ function AlertConfigCard({
           onClick={() => onToggleEnabled(config)}
           className={`px-4 py-2 font-semibold rounded-lg transition-all border ${
             config.enabled
-              ? 'bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border-slate-500/30 hover:border-slate-400'
-              : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30 hover:border-green-400'
+              ? 'bg-slate-500/10 dark:bg-slate-500/10 hover:bg-slate-500/20 dark:hover:bg-slate-500/20 text-slate-400 dark:text-slate-400 border-slate-500/30 dark:border-slate-500/30 hover:border-slate-400 dark:hover:border-slate-400'
+              : 'bg-green-500/10 dark:bg-green-500/10 hover:bg-green-500/20 dark:hover:bg-green-500/20 text-green-400 dark:text-green-400 border-green-500/30 dark:border-green-500/30 hover:border-green-400 dark:hover:border-green-400'
           }`}
         >
           {config.enabled ? (
@@ -343,11 +343,11 @@ function AlertConfigCard({
 function TriggerBadge({ enabled, label }: { enabled: boolean; label: string }) {
   return (
     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-      enabled 
-        ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
-        : 'bg-slate-800 text-slate-500 border border-slate-700'
+      enabled
+        ? 'bg-green-500/10 dark:bg-green-500/10 text-green-400 dark:text-green-400 border border-green-500/30 dark:border-green-500/30'
+        : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-300 dark:border-slate-700'
     }`}>
-      <div className={`h-2 w-2 rounded-full ${enabled ? 'bg-green-500' : 'bg-slate-600'}`} />
+      <div className={`h-2 w-2 rounded-full ${enabled ? 'bg-green-500 dark:bg-green-500' : 'bg-slate-400 dark:bg-slate-600'}`} />
       <span className="text-xs font-semibold">{label}</span>
     </div>
   );
