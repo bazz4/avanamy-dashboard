@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { RefreshCw, ArrowLeft, GitCompare } from 'lucide-react';
+import { RefreshCw, ArrowLeft, GitCompare, FileCode } from 'lucide-react';
 import { getVersionDiff } from '@/lib/api';
 import type { VersionDiff } from '@/lib/types';
 import { DiffViewer } from '@/components/DiffViewer';
@@ -80,17 +80,26 @@ export default function DiffPage() {
         </div>
 
         <div className="flex items-center gap-4 mb-2">
-          <GitCompare className="h-8 w-8 text-purple-400 dark:text-purple-400" />
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+          <GitCompare className="h-8 w-8 text-purple-400" />
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-white">
               Version {diffData?.version} Changes
             </h1>
             {diffData && (
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-slate-400 mt-1">
                 {formatDate(diffData.created_at)}
               </p>
             )}
           </div>
+          
+          {/* View Full Schema Button */}
+          <button
+            onClick={() => router.push(`/specs/${specId}/versions/${versionId}/full-schema`)}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg transition-all"
+          >
+            <FileCode className="h-4 w-4" />
+            View Full Schema
+          </button>
         </div>
       </div>
 

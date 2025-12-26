@@ -280,3 +280,30 @@ export function getVersionDetail(specId: string, versionId: number): Promise<Spe
 export function getVersionDiff(specId: string, versionId: number): Promise<VersionDiff> {
   return apiGet<VersionDiff>(`/api-specs/${specId}/versions/${versionId}/diff`);
 }
+
+export function getVersionSchema(specId: string, versionNumber: number): Promise<{ version: number; schema: any }> {
+  return apiGet<{ version: number; schema: any }>(`/api-specs/${specId}/versions/${versionNumber}/schema`);
+}
+
+// === Full Schema Comparison ===
+
+export function getOriginalSpec(specId: string, versionNumber: number): Promise<{
+  version: number;
+  spec: any;
+  s3_path: string;
+}> {
+  return apiGet(`/api-specs/${specId}/versions/${versionNumber}/original-spec`);
+}
+
+export function compareVersions(
+  specId: string,
+  currentVersion: number,
+  compareWithVersion: number
+): Promise<{
+  current_version: number;
+  previous_version: number;
+  current_spec: any;
+  previous_spec: any;
+}> {
+  return apiGet(`/api-specs/${specId}/versions/${currentVersion}/compare?compare_with=${compareWithVersion}`);
+}
