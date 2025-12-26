@@ -36,6 +36,30 @@ export default function FullSchemaPage() {
     }
   }, [specId, compareFrom, compareTo, availableVersions]);
 
+    // Fix: Reset state when navigating to different version
+    useEffect(() => {
+    setCompareFrom(currentVersionId - 1);
+    setCompareTo(currentVersionId);
+    setCurrentChangeIndex(0);
+    }, [currentVersionId]);
+
+    // Fix: Validate selected versions exist in available versions
+    useEffect(() => {
+    if (availableVersions.length > 0) {
+        // Ensure compareFrom exists
+        if (!availableVersions.includes(compareFrom)) {
+        const validFrom = availableVersions
+            .filter(v => v < compareTo)
+            .sort((a, b) => b - a)[0] || availableVersions[0];
+        setCompareFrom(validFrom);
+        }
+        // Ensure compareTo exists
+        if (!availableVersions.includes(compareTo)) {
+        setCompareTo(availableVersions[availableVersions.length - 1]);
+        }
+    }
+    }, [availableVersions, compareFrom, compareTo]);
+
   const loadVersions = async () => {
     try {
       const versions = await getSpecVersions(specId);
@@ -53,9 +77,23 @@ export default function FullSchemaPage() {
       setCurrentSpec(data.current_spec);
       setPreviousSpec(data.previous_spec);
       setError(null);
-    } catch (err) {
-      setError('Failed to load specs');
-      console.error(err);
+    } catch (err: any) {
+      // Check if it's a missing artifact error
+      const errorMessage = err?.response?.data?.detail;
+      
+      if (typeof errorMessage === 'object' && errorMessage.is_legacy_version) {
+        setError(
+          `Cannot compare legacy versions. ${errorMessage.suggestion || 
+          'This version was created before full schema storage was implemented.'}`
+        );
+      } else if (typeof errorMessage === 'string' && errorMessage.includes('artifact not found')) {
+        setError(
+          'Full schema comparison is not available for these versions. ' +
+          'They were created before this feature was implemented. Upload a new version to enable comparison.'
+        );
+      } else {
+        setError('Failed to load specs');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,9 +115,42 @@ export default function FullSchemaPage() {
   if (error || !currentSpec || !previousSpec) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
-            {error || 'Failed to load schemas'}
+        <div className="max-w-7xl mx-auto space-y-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Summary
+          </button>
+
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <FileCode className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="text-lg font-bold text-yellow-400 mb-2">
+                  Full Schema Comparison Not Available
+                </h3>
+                <p className="text-yellow-200/80 mb-4">
+                  {error || 'Failed to load schemas'}
+                </p>
+                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                  <p className="text-sm text-slate-300 mb-2">
+                    <strong>Why is this happening?</strong>
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    These versions were created before full schema storage was implemented. 
+                    Only the summary diff is available for legacy versions.
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push(`/specs/${specId}/versions/${compareTo}/diff`)}
+                  className="mt-4 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg transition-all"
+                >
+                  View Summary Diff Instead
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

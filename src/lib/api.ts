@@ -13,7 +13,12 @@ async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    console.error(`GET ${path} failed`, res.status, text);
+    // Only log as error if it's truly unexpected (not 404)
+    if (res.status >= 500) {
+      console.error(`GET ${path} failed`, res.status, text);
+    } else {
+      console.warn(`GET ${path} returned ${res.status}`, text);
+    }
     throw new Error(`API GET ${path} failed: ${res.status}`);
   }
 
