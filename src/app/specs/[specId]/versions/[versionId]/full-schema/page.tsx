@@ -1,31 +1,55 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, FileCode, RefreshCw, Split, Columns } from 'lucide-react';
-import { compareVersions } from '@/lib/api';
+import { ArrowLeft, FileCode, RefreshCw, Split, Columns, Search, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { compareVersions, getSpecVersions } from '@/lib/api';
 import * as Diff from 'diff';
 
 export default function FullSchemaPage() {
   const params = useParams();
   const router = useRouter();
   const specId = params.specId as string;
-  const versionId = parseInt(params.versionId as string);
+  const currentVersionId = parseInt(params.versionId as string);
 
   const [currentSpec, setCurrentSpec] = useState<any>(null);
   const [previousSpec, setPreviousSpec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
+  
+  // New state for enhancements
+  const [searchQuery, setSearchQuery] = useState('');
+  const [availableVersions, setAvailableVersions] = useState<number[]>([]);
+  const [compareFrom, setCompareFrom] = useState<number>(currentVersionId - 1);
+  const [compareTo, setCompareTo] = useState<number>(currentVersionId);
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadSpecs();
-  }, [specId, versionId]);
+    loadVersions();
+  }, [specId]);
+
+  useEffect(() => {
+    if (availableVersions.length > 0) {
+      loadSpecs();
+    }
+  }, [specId, compareFrom, compareTo, availableVersions]);
+
+  const loadVersions = async () => {
+    try {
+      const versions = await getSpecVersions(specId);
+      const versionNumbers = versions.map(v => v.version).sort((a, b) => a - b);
+      setAvailableVersions(versionNumbers);
+    } catch (err) {
+      console.error('Failed to load versions:', err);
+    }
+  };
 
   const loadSpecs = async () => {
     try {
       setLoading(true);
-      const data = await compareVersions(specId, versionId, versionId - 1);
+      const data = await compareVersions(specId, compareTo, compareFrom);
       setCurrentSpec(data.current_spec);
       setPreviousSpec(data.previous_spec);
       setError(null);
@@ -88,16 +112,13 @@ export default function FullSchemaPage() {
             <span className="text-cyan-400">Full Schema</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <FileCode className="h-8 w-8 text-purple-400" />
               <div>
                 <h1 className="text-3xl font-bold text-white">
                   Full Schema Comparison
                 </h1>
-                <p className="text-slate-400 mt-1">
-                  v{versionId - 1} → v{versionId}
-                </p>
               </div>
             </div>
 
@@ -127,14 +148,69 @@ export default function FullSchemaPage() {
               </button>
             </div>
           </div>
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            {/* Version Selectors */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-400">Compare:</label>
+              <select
+                value={compareFrom}
+                onChange={(e) => setCompareFrom(parseInt(e.target.value))}
+                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+              >
+                {availableVersions.map(v => (
+                  <option key={v} value={v}>v{v}</option>
+                ))}
+              </select>
+              <span className="text-slate-500">→</span>
+              <select
+                value={compareTo}
+                onChange={(e) => setCompareTo(parseInt(e.target.value))}
+                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+              >
+                {availableVersions.map(v => (
+                  <option key={v} value={v}>v{v}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="h-6 w-px bg-slate-700" />
+
+            {/* Search */}
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search in diff..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-white text-sm outline-none placeholder-slate-500"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Diff Display */}
         <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           {viewMode === 'unified' ? (
-            <UnifiedDiffView previousJson={previousJson} currentJson={currentJson} />
+            <UnifiedDiffView 
+              previousJson={previousJson} 
+              currentJson={currentJson}
+              searchQuery={searchQuery}
+              currentChangeIndex={currentChangeIndex}
+              setCurrentChangeIndex={setCurrentChangeIndex}
+              collapsedSections={collapsedSections}
+              setCollapsedSections={setCollapsedSections}
+            />
           ) : (
-            <SplitDiffView previousJson={previousJson} currentJson={currentJson} />
+            <SplitDiffView 
+              previousJson={previousJson} 
+              currentJson={currentJson}
+              searchQuery={searchQuery}
+              collapsedSections={collapsedSections}
+              setCollapsedSections={setCollapsedSections}
+            />
           )}
         </div>
       </div>
@@ -142,61 +218,217 @@ export default function FullSchemaPage() {
   );
 }
 
-// Unified Diff View Component
-function UnifiedDiffView({ previousJson, currentJson }: { previousJson: string; currentJson: string }) {
+// Unified Diff View Component with enhancements
+function UnifiedDiffView({ 
+  previousJson, 
+  currentJson, 
+  searchQuery,
+  currentChangeIndex,
+  setCurrentChangeIndex,
+  collapsedSections,
+  setCollapsedSections
+}: { 
+  previousJson: string; 
+  currentJson: string;
+  searchQuery: string;
+  currentChangeIndex: number;
+  setCurrentChangeIndex: (index: number) => void;
+  collapsedSections: Set<string>;
+  setCollapsedSections: (sections: Set<string>) => void;
+}) {
   const diff = Diff.diffLines(previousJson, currentJson);
+  const changeRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Find all changed lines
+  const changedLineIndices = useMemo(() => {
+    const indices: number[] = [];
+    let lineNum = 0;
+    diff.forEach(part => {
+      const lines = part.value.split('\n').filter(line => line.length > 0);
+      lines.forEach(() => {
+        if (part.added || part.removed) {
+          indices.push(lineNum);
+        }
+        lineNum++;
+      });
+    });
+    return indices;
+  }, [diff]);
+
+  // Navigation functions
+  const goToNextChange = () => {
+    if (changedLineIndices.length === 0) return;
+    const nextIndex = (currentChangeIndex + 1) % changedLineIndices.length;
+    setCurrentChangeIndex(nextIndex);
+    changeRefs.current[changedLineIndices[nextIndex]]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const goToPreviousChange = () => {
+    if (changedLineIndices.length === 0) return;
+    const prevIndex = currentChangeIndex === 0 ? changedLineIndices.length - 1 : currentChangeIndex - 1;
+    setCurrentChangeIndex(prevIndex);
+    changeRefs.current[changedLineIndices[prevIndex]]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // Detect sections (paths in OpenAPI)
+  const detectSection = (line: string): string | null => {
+    const pathMatch = line.match(/^\s*"(\/[^"]*)":/);
+    if (pathMatch) return pathMatch[1];
+    
+    const topLevelMatch = line.match(/^\s*"(paths|components|info|servers)":/);
+    if (topLevelMatch) return topLevelMatch[1];
+    
+    return null;
+  };
+
+  const toggleSection = (section: string) => {
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(section)) {
+      newCollapsed.delete(section);
+    } else {
+      newCollapsed.add(section);
+    }
+    setCollapsedSections(newCollapsed);
+  };
+
+  const highlightSearch = (text: string) => {
+    if (!searchQuery) return text;
+    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-300 dark:bg-yellow-600 text-black dark:text-white">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
+  let lineNum = 0;
+  let currentSection: string | null = null;
+  let sectionStartLine = 0;
 
   return (
-    <div className="font-mono text-xs">
-      {diff.map((part, idx) => {
-        const lines = part.value.split('\n').filter(line => line.length > 0);
-        
-        return lines.map((line, lineIdx) => (
-          <div
-            key={`${idx}-${lineIdx}`}
-            className={`flex ${
-              part.added
-                ? 'bg-green-500/20 dark:bg-green-500/20'
-                : part.removed
-                ? 'bg-red-500/20 dark:bg-red-500/20'
-                : ''
-            }`}
-          >
-            <div className="w-12 flex-shrink-0 text-right pr-4 py-1 text-slate-400 dark:text-slate-500 select-none border-r border-slate-200 dark:border-slate-800">
-              {idx + lineIdx + 1}
-            </div>
-            <div className="flex-1 px-4 py-1 flex items-start">
-              {part.added && (
-                <span className="text-green-600 dark:text-green-400 mr-2">+</span>
-              )}
-              {part.removed && (
-                <span className="text-red-600 dark:text-red-400 mr-2">-</span>
-              )}
-              <pre
-                className={`whitespace-pre font-mono ${
+    <div className="relative">
+      {/* Navigation Controls */}
+      {changedLineIndices.length > 0 && (
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-2">
+          <span className="text-sm text-slate-400">
+            Change {currentChangeIndex + 1} of {changedLineIndices.length}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={goToPreviousChange}
+              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-sm flex items-center gap-1"
+            >
+              <ChevronUp className="h-4 w-4" />
+              Previous
+            </button>
+            <button
+              onClick={goToNextChange}
+              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-sm flex items-center gap-1"
+            >
+              Next
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="font-mono text-xs">
+        {diff.map((part, idx) => {
+          const lines = part.value.split('\n').filter(line => line.length > 0);
+          
+          return lines.map((line, lineIdx) => {
+            const section = detectSection(line);
+            if (section) {
+              currentSection = section;
+              sectionStartLine = lineNum;
+            }
+
+            const isCollapsed = currentSection && collapsedSections.has(currentSection) && lineNum > sectionStartLine;
+            const isChanged = part.added || part.removed;
+            const isHighlighted = changedLineIndices[currentChangeIndex] === lineNum;
+            
+            const element = (
+              <div
+                key={`${idx}-${lineIdx}`}
+                ref={el => { changeRefs.current[lineNum] = el; }}
+                className={`flex ${
+                  isCollapsed ? 'hidden' : ''
+                } ${
                   part.added
-                    ? 'text-green-700 dark:text-green-300'
+                    ? 'bg-green-500/20 dark:bg-green-500/20'
                     : part.removed
-                    ? 'text-red-700 dark:text-red-300'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-red-500/20 dark:bg-red-500/20'
+                    : ''
+                } ${
+                  isHighlighted ? 'ring-2 ring-cyan-400' : ''
                 }`}
               >
-                {line}
-              </pre>
-            </div>
-          </div>
-        ));
-      })}
+                <div className="w-12 flex-shrink-0 text-right pr-4 py-1 text-slate-400 dark:text-slate-500 select-none border-r border-slate-200 dark:border-slate-800">
+                  {lineNum + 1}
+                </div>
+                <div className="flex-1 px-4 py-1 flex items-start">
+                  {section && lineNum === sectionStartLine && (
+                    <button
+                      onClick={() => toggleSection(section)}
+                      className="mr-2 text-slate-400 hover:text-slate-300"
+                    >
+                      {collapsedSections.has(section) ? (
+                        <ChevronRight className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                  {part.added && (
+                    <span className="text-green-600 dark:text-green-400 mr-2">+</span>
+                  )}
+                  {part.removed && (
+                    <span className="text-red-600 dark:text-red-400 mr-2">-</span>
+                  )}
+                  <pre
+                    className={`whitespace-pre font-mono ${
+                      part.added
+                        ? 'text-green-700 dark:text-green-300'
+                        : part.removed
+                        ? 'text-red-700 dark:text-red-300'
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {highlightSearch(line)}
+                  </pre>
+                </div>
+              </div>
+            );
+
+            lineNum++;
+            return element;
+          });
+        })}
+      </div>
     </div>
   );
 }
 
-// Split Diff View Component
-function SplitDiffView({ previousJson, currentJson }: { previousJson: string; currentJson: string }) {
+// Split Diff View Component with highlighting
+function SplitDiffView({ 
+  previousJson, 
+  currentJson,
+  searchQuery,
+  collapsedSections,
+  setCollapsedSections
+}: { 
+  previousJson: string; 
+  currentJson: string;
+  searchQuery: string;
+  collapsedSections: Set<string>;
+  setCollapsedSections: (sections: Set<string>) => void;
+}) {
   const previousLines = previousJson.split('\n');
   const currentLines = currentJson.split('\n');
-  
-  // Use diff to identify which lines changed
   const diff = Diff.diffLines(previousJson, currentJson);
   
   // Build line-by-line change map
@@ -214,7 +446,7 @@ function SplitDiffView({ previousJson, currentJson }: { previousJson: string; cu
       });
     } else if (part.added) {
       lines.forEach(() => {
-        changes.set(currLineNum + 100000, 'added'); // Offset for current
+        changes.set(currLineNum + 100000, 'added');
         currLineNum++;
       });
     } else {
@@ -224,6 +456,20 @@ function SplitDiffView({ previousJson, currentJson }: { previousJson: string; cu
       });
     }
   });
+
+  const highlightSearch = (text: string) => {
+    if (!searchQuery) return text;
+    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-300 dark:bg-yellow-600 text-black dark:text-white">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
   return (
     <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-slate-800">
@@ -254,7 +500,7 @@ function SplitDiffView({ previousJson, currentJson }: { previousJson: string; cu
                       ? 'text-red-700 dark:text-red-300' 
                       : 'text-slate-600 dark:text-slate-400'
                   }`}>
-                    {line}
+                    {highlightSearch(line)}
                   </pre>
                 </div>
               </div>
@@ -290,7 +536,7 @@ function SplitDiffView({ previousJson, currentJson }: { previousJson: string; cu
                       ? 'text-green-700 dark:text-green-300' 
                       : 'text-slate-600 dark:text-slate-400'
                   }`}>
-                    {line}
+                    {highlightSearch(line)}
                   </pre>
                 </div>
               </div>
