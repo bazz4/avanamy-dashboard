@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X } from 'lucide-react';
 import { getWatchedAPIs, triggerPoll, deleteWatchedAPI } from '@/lib/api';
 import type { WatchedAPI } from '@/lib/types';
+import { PollStatusBadge } from '@/components/PollStatusBadge';
 import { AddWatchedAPIModal } from '@/components/AddWatchedAPIModal';
 import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
 
@@ -84,32 +85,6 @@ export default function WatchedAPIsPage() {
     setShowEditModal(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/30';
-      case 'warning':
-        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      case 'error':
-        return 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/30';
-      default:
-        return 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/30';
-    }
-  };
-
-  const getStatusDot = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'bg-green-500';
-      case 'warning':
-        return 'bg-yellow-500';
-      case 'error':
-        return 'bg-red-500';
-      default:
-        return 'bg-slate-500';
-    }
-  };
-
   const formatTimestamp = (timestamp: string | null) => {
     if (!timestamp) return 'Never';
     const date = new Date(timestamp);
@@ -125,11 +100,11 @@ export default function WatchedAPIsPage() {
     return `${diffDays}d ago`;
   };
 
-  // Calculate stats
+// Calculate stats
   const stats = {
     total: watchedAPIs.length,
     active: watchedAPIs.filter(api => api.polling_enabled).length,
-    healthy: watchedAPIs.filter(api => api.status === 'healthy').length,
+    healthy: watchedAPIs.filter(api => api.consecutive_failures === 0).length,
     alerts: watchedAPIs.reduce((sum, api) => sum + (api.consecutive_failures || 0), 0),
   };
 
@@ -293,15 +268,13 @@ export default function WatchedAPIsPage() {
           </div>
         ) : (
           filteredAPIs.map((api) => (
-            <APICard 
-              key={api.id} 
-              api={api} 
+            <APICard
+              key={api.id}
+              api={api}
               onPollNow={handlePollNow}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              getStatusColor={getStatusColor}
-              getStatusDot={getStatusDot}
               formatTimestamp={formatTimestamp}
+              onEdit={handleEdit}      
+              onDelete={handleDelete}  
             />
           ))
         )}
@@ -376,19 +349,15 @@ function StatCard({
 function APICard({ 
   api, 
   onPollNow,
-  onEdit,
-  onDelete,
-  getStatusColor,
-  getStatusDot,
-  formatTimestamp
+  formatTimestamp,
+  onEdit,     // Add this
+  onDelete    // Add this
 }: { 
   api: WatchedAPI; 
   onPollNow: (id: string) => void;
-  onEdit: (api: WatchedAPI) => void;
-  onDelete: (api: WatchedAPI) => void;
-  getStatusColor: (status: string) => string;
-  getStatusDot: (status: string) => string;
   formatTimestamp: (timestamp: string | null) => string;
+  onEdit: (api: WatchedAPI) => void;      // Add this
+  onDelete: (api: WatchedAPI) => void;    // Add this
 }) {
   const [polling, setPolling] = useState(false);
 
@@ -412,10 +381,10 @@ function APICard({
             {api.spec_url}
           </p>
         </div>
-        <div className={`flex items-center gap-2 px-4 py-2 rounded-full border font-bold text-sm ${getStatusColor(api.status)}`}>
-          <div className={`h-2 w-2 rounded-full ${getStatusDot(api.status)} animate-pulse`}></div>
-          <span className="capitalize">{api.status || 'Unknown'}</span>
-        </div>
+        <PollStatusBadge 
+          consecutiveFailures={api.consecutive_failures}
+          lastError={api.last_error}
+        />
       </div>
 
       {/* Metadata */}

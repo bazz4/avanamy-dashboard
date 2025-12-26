@@ -66,6 +66,7 @@ export interface WatchedAPI {
   last_polled_at: string | null;
   last_successful_poll_at: string | null;
   last_version_detected: string | null;
+  last_error: string | null;
   consecutive_failures: number;
   status: string;
   created_at: string;
