@@ -124,6 +124,8 @@ export default function VersionsPage() {
                 isLatest={idx === 0}
                 onViewDiff={handleViewDiff}
                 formatDate={formatDate}
+                router={router}
+                specId={specId}
               />
             ))
           )}
@@ -169,12 +171,16 @@ function VersionCard({
   version,
   isLatest,
   onViewDiff,
-  formatDate
+  formatDate,
+  router,
+  specId
 }: { 
   version: SpecVersion;
   isLatest: boolean;
   onViewDiff: (versionId: number) => void;
   formatDate: (date: string) => string;
+  router: ReturnType<typeof useRouter>;
+  specId: string;  
 }) {
   return (
     <div className="relative pl-20">
@@ -228,8 +234,8 @@ function VersionCard({
         )}
 
         {/* Actions */}
-        {version.diff && (
-          <div className="flex gap-3">
+        <div className="flex gap-3">
+          {version.diff && (
             <button
               onClick={() => onViewDiff(version.version)}
               className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 dark:bg-purple-500/10 hover:bg-purple-500/20 dark:hover:bg-purple-500/20 text-purple-400 dark:text-purple-400 border border-purple-500/30 dark:border-purple-500/30 hover:border-purple-400 dark:hover:border-purple-400 font-semibold rounded-lg transition-all"
@@ -237,8 +243,17 @@ function VersionCard({
               <Eye className="h-4 w-4" />
               View Diff
             </button>
-          </div>
-        )}
+          )}
+          
+          {/* View Docs Button - NEW */}
+          <button
+            onClick={() => window.open(`http://localhost:8000/docs/${specId}/versions/${version.version}?format=html&raw=true`, '_blank')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 dark:bg-blue-500/10 hover:bg-blue-500/20 dark:hover:bg-blue-500/20 text-blue-400 dark:text-blue-400 border border-blue-500/30 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-400 font-semibold rounded-lg transition-all"
+          >
+            <FileText className="h-4 w-4" />
+            View Docs
+          </button>
+        </div>
 
         {!version.diff && !version.summary && (
           <div className="text-sm text-slate-500 dark:text-slate-500 italic">

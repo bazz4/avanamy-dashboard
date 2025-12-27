@@ -312,3 +312,51 @@ export function compareVersions(
 }> {
   return apiGet(`/api-specs/${specId}/versions/${currentVersion}/compare?compare_with=${compareWithVersion}`);
 }
+
+// === Documentation Viewer ===
+
+export function getAvailableDocFormats(
+  specId: string,
+  versionId: number
+): Promise<{
+  spec_id: string;
+  version: number;
+  available_formats: {
+    markdown: boolean;
+    html: boolean;
+  };
+  total_artifacts: number;
+}> {
+  return apiGet(`/docs/${specId}/versions/${versionId}/available`);
+}
+
+export function getVersionDocumentation(
+  specId: string,
+  versionId: number,
+  format: 'html' | 'markdown' = 'html'
+): Promise<{
+  spec_id: string;
+  spec_name: string;
+  version: number;
+  format: string;
+  content: string;
+  s3_path: string;
+  generated_at: string;
+}> {
+  return apiGet(`/docs/${specId}/versions/${versionId}?format=${format}`);
+}
+
+export function getLatestDocumentation(
+  specId: string,
+  format: 'html' | 'markdown' = 'html'
+): Promise<{
+  spec_id: string;
+  spec_name: string;
+  version: number;
+  format: string;
+  content: string;
+  s3_path: string;
+  generated_at: string;
+}> {
+  return apiGet(`/docs/${specId}/latest?format=${format}`);
+}

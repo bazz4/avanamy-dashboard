@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { RefreshCw, ArrowLeft, GitCompare, FileCode } from 'lucide-react';
+import { RefreshCw, ArrowLeft, GitCompare, FileCode, FileText } from 'lucide-react';
+import Link from 'next/link';
 import { getVersionDiff } from '@/lib/api';
 import type { VersionDiff } from '@/lib/types';
 import { DiffViewer } from '@/components/DiffViewer';
@@ -92,14 +93,26 @@ export default function DiffPage() {
             )}
           </div>
           
-          {/* View Full Schema Button */}
-          <button
-            onClick={() => router.push(`/specs/${specId}/versions/${versionId}/full-schema`)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg transition-all"
-          >
-            <FileCode className="h-4 w-4" />
-            View Full Schema
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {/* View Documentation Button - NEW */}
+            <button
+              onClick={() => window.open(`http://localhost:8000/docs/${specId}/versions/${versionId}?format=html&raw=true`, '_blank')}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg transition-all"
+            >
+              <FileText className="h-4 w-4" />
+              View Docs
+            </button>
+            
+            {/* View Full Schema Button */}
+            <button
+              onClick={() => router.push(`/specs/${specId}/versions/${versionId}/full-schema`)}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg transition-all"
+            >
+              <FileCode className="h-4 w-4" />
+              View Full Schema
+            </button>
+          </div>
         </div>
       </div>
 
