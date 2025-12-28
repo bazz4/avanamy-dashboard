@@ -1,5 +1,5 @@
-import DocumentationViewer from '@/components/DocumentationViewer';
+//import DocumentationViewer from '@/components/DocumentationViewer';
 
 export default function DocViewerPage() {
-  return <DocumentationViewer />;
+  return null;
 }
