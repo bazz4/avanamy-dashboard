@@ -10,8 +10,10 @@ import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
 
 import { ConfirmDialog } from '@/components/ConfirmationDialog';
 import { Search, Edit2, Trash2, GitBranch } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 
 export default function WatchedAPIsPage() {
+  const { isLoaded } = useAuth();
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +26,7 @@ export default function WatchedAPIsPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadWatchedAPIs(true); // Show loading spinner on initial load
     
     // Auto-refresh every 10 seconds (no loading spinner)
@@ -33,7 +36,7 @@ export default function WatchedAPIsPage() {
     
     // Cleanup on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, [isLoaded]);
 
   const loadWatchedAPIs = async (showLoadingSpinner = false) => {
     try {

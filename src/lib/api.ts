@@ -1,12 +1,31 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID!;
 
+async function getClerkToken(): Promise<string> {
+  // Clerk stores tokens in the window object
+  if (typeof window !== 'undefined' && (window as any).Clerk) {
+    try {
+      const token = await (window as any).Clerk.session?.getToken();
+      console.log('✅ Got Clerk token:', !!token, token?.substring(0, 20)); // DEBUG
+      return token || '';
+    } catch (e) {
+      console.error('❌ Failed to get Clerk token:', e);
+      return '';
+    }
+  }
+  console.warn('⚠️ Clerk not available on window'); // DEBUG
+  return '';
+}
+
 async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getClerkToken();
+  
+  console.log('📡 Making API call:', path, 'with token:', !!token); // DEBUG
+  
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    // include credentials / headers if needed later
     headers: {
-      "X-Tenant-ID": TENANT_ID,
+      'Authorization': token ? `Bearer ${token}` : '',
       ...(init?.headers ?? {}),
     },
   });
@@ -26,13 +45,17 @@ async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function apiPost<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
+  const token = await getClerkToken();  // ADD THIS LINE
+  
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
-    headers:
-      body instanceof FormData
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',  // ADD THIS LINE
+      ...(body instanceof FormData
         ? init?.headers
-        : { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+        : { "Content-Type": "application/json", ...(init?.headers ?? {}) }),
+    },
     ...init,
   });
 
@@ -119,10 +142,16 @@ export function uploadNewSpecVersion(
 // === Phase 6: Watched APIs ===
 
 async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
+  const token = await getClerkToken();  // ADD THIS LINE
+  
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",
     body: JSON.stringify(body ?? {}),
-    headers: { "Content-Type": "application/json", "X-Tenant-ID": TENANT_ID, ...(init?.headers ?? {}) },
+    headers: { 
+      'Authorization': token ? `Bearer ${token}` : '',  // ADD THIS LINE
+      "Content-Type": "application/json", 
+      ...(init?.headers ?? {}) 
+    },
     ...init,
   });
   if (!res.ok) {
@@ -134,9 +163,14 @@ async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promis
 }
 
 async function apiDelete(path: string, init?: RequestInit): Promise<void> {
+  const token = await getClerkToken();  // ADD THIS LINE
+  
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
-    headers: { "X-Tenant-ID": TENANT_ID, ...(init?.headers ?? {}) },
+    headers: { 
+      'Authorization': token ? `Bearer ${token}` : '',  // ADD THIS LINE
+      ...(init?.headers ?? {}) 
+    },
     ...init,
   });
   if (!res.ok) {
