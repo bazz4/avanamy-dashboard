@@ -1,20 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { RefreshCw, Bell, Plus, Mail, Webhook, MessageSquare, Play, Trash2, Power, PowerOff } from 'lucide-react';
 import { getAlertConfigs, deleteAlertConfig, updateAlertConfig, testAlertConfig } from '@/lib/api';
 import type { AlertConfig } from '@/lib/types';
 import { AddAlertConfigModal } from '@/components/AddAlertConfigModal';
 
 export default function AlertConfigsPage() {
+  const { isLoaded } = useAuth();
   const [alertConfigs, setAlertConfigs] = useState<AlertConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadAlertConfigs();
-  }, []);
+  }, [isLoaded]);
 
   const loadAlertConfigs = async () => {
     try {
@@ -71,7 +74,7 @@ export default function AlertConfigsPage() {
     slack: alertConfigs.filter(c => c.alert_type === 'slack').length,
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">

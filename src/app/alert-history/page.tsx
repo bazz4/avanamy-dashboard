@@ -1,31 +1,34 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter, ExternalLink } from 'lucide-react';
 import { getAlertHistory } from '@/lib/api';
 import type { AlertHistory } from '@/lib/types';
 
 export default function AlertHistoryPage() {
+  const { isLoaded } = useAuth();
   const [alerts, setAlerts] = useState<AlertHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Filters
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadAlerts(true); // Show loading spinner on initial load
-    
+
     // Auto-refresh every 15 seconds
     const interval = setInterval(() => {
       loadAlerts(false); // No loading spinner on auto-refresh
     }, 15000);
-    
+
     // Cleanup on unmount
     return () => clearInterval(interval);
-  }, [severityFilter, statusFilter]);
+  }, [isLoaded, severityFilter, statusFilter]);
 
   const loadAlerts = async (showLoadingSpinner = false) => {
     try {
@@ -105,7 +108,7 @@ export default function AlertHistoryPage() {
     failed: alerts.filter(a => a.status === 'failed').length,
   };
 
-  if (loading && alerts.length === 0) {
+  if (!isLoaded || (loading && alerts.length === 0)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">

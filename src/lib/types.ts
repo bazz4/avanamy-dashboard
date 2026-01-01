@@ -1,7 +1,33 @@
+// Add these to your existing src/lib/types.ts file
+
 export interface Provider {
   id: string;
+  tenant_id: string;
   name: string;
   slug: string;
+  website: string | null;
+  logo_url: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+}
+
+export interface ProviderCreate {
+  name: string;
+  slug: string;
+  website?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
+}
+
+export interface ProviderUpdate {
+  name?: string;
+  slug?: string;
+  website?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
 }
 
 export interface ApiProduct {

@@ -71,11 +71,8 @@ async function apiPost<T>(path: string, body?: any, init?: RequestInit): Promise
 // === Domain-specific helpers ===
 
 import type {
-  Provider,
-  ApiProduct,
   ApiSpec,
   SpecVersion,
-  SpecDocs,
   WatchedAPI,
   AlertConfig,
   AlertHistory,
@@ -84,15 +81,61 @@ import type {
   WatchedAPIHealthSummary,
   VersionDiff, // ADD THIS
 } from "./types";
+// Add these to your existing src/lib/api.ts file
 
-export function getProviders(): Promise<Provider[]> {
-  return apiGet<Provider[]>("/providers");
+// Provider Types
+export interface Provider {
+  id: string;
+  tenant_id: string;
+  name: string;
+  slug: string;
+  website: string | null;
+  logo_url: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
 }
 
-export function getProductsForProvider(
+export interface ProviderCreate {
+  name: string;
+  slug: string;
+  website?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
+}
+
+export interface ProviderUpdate {
+  name?: string;
+  slug?: string;
+  website?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
+}
+
+// Provider API Functions
+export async function getProviders(): Promise<Provider[]> {
+  return apiGet<Provider[]>('/providers');
+}
+
+export async function getProvider(providerId: string): Promise<Provider> {
+  return apiGet<Provider>(`/providers/${providerId}`);
+}
+
+export async function createProvider(data: ProviderCreate): Promise<Provider> {
+  return apiPost<Provider>('/providers', data);
+}
+
+export async function updateProvider(
   providerId: string,
-): Promise<ApiProduct[]> {
-  return apiGet<ApiProduct[]>(`/providers/${providerId}/products`);
+  data: ProviderUpdate
+): Promise<Provider> {
+  return apiPut<Provider>(`/providers/${providerId}`, data);
+}
+
+export async function deleteProvider(providerId: string): Promise<void> {
+  return apiDelete(`/providers/${providerId}`);
 }
 
 export function getSpecsForProduct(productId: string): Promise<ApiSpec[]> {
@@ -140,6 +183,28 @@ export function uploadNewSpecVersion(
 }
 
 // === Phase 6: Watched APIs ===
+async function apiPut<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
+  const token = await getClerkToken();
+  
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    body: JSON.stringify(body ?? {}),
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`PUT ${path} failed`, res.status, text);
+    throw new Error(`API PUT ${path} failed: ${res.status}`);
+  }
+
+  return res.json() as Promise<T>;
+}
 
 async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const token = await getClerkToken();  // ADD THIS LINE

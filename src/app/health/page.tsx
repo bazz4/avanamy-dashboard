@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { RefreshCw, Activity, TrendingUp, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getAllHealthSummary, getWatchedAPIs } from '@/lib/api';
 import type { WatchedAPIHealthSummary, WatchedAPI } from '@/lib/types';
 
 export default function HealthDashboardPage() {
+  const { isLoaded } = useAuth();
   const [healthSummaries, setHealthSummaries] = useState<WatchedAPIHealthSummary[]>([]);
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,16 +16,17 @@ export default function HealthDashboardPage() {
   const [timeWindow, setTimeWindow] = useState(24);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
+    if (!isLoaded) return;
     loadData(true); // Show loading spinner on initial load
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadData(false); // No loading spinner on auto-refresh
     }, 30000);
-    
+
     // Cleanup on unmount
     return () => clearInterval(interval);
-  }, [timeWindow]);
+  }, [isLoaded, timeWindow]);
   const loadData = async (showLoadingSpinner = false) => {
     try {
       setRefreshing(true);
@@ -71,7 +74,7 @@ export default function HealthDashboardPage() {
       responseTime: s.avg_response_time_ms,
     }));
 
-  if (loading && healthSummaries.length === 0) {
+  if (!isLoaded || (loading && healthSummaries.length === 0)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">

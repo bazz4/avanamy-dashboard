@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, FileCode, RefreshCw, Split, Columns, Search, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
 import { compareVersions, getSpecVersions } from '@/lib/api';
 import * as Diff from 'diff';
 
 export default function FullSchemaPage() {
+  const { isLoaded } = useAuth();
   const params = useParams();
   const router = useRouter();
   const specId = params.specId as string;
@@ -17,7 +19,7 @@ export default function FullSchemaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
-  
+
   // New state for enhancements
   const [searchQuery, setSearchQuery] = useState('');
   const [availableVersions, setAvailableVersions] = useState<number[]>([]);
@@ -27,8 +29,9 @@ export default function FullSchemaPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadVersions();
-  }, [specId]);
+  }, [isLoaded, specId]);
 
   useEffect(() => {
     if (availableVersions.length > 0) {
@@ -99,7 +102,7 @@ export default function FullSchemaPage() {
     }
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
         <div className="max-w-7xl mx-auto">

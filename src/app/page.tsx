@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Radio, Bell, Activity, TrendingUp, Zap, Shield, Clock } from 'lucide-react';
 import { AvanamyLogo } from '@/components/AvanamyLogo';
@@ -8,14 +10,28 @@ import { getWatchedAPIs, getAllHealthSummary, getAlertHistory } from '@/lib/api'
 import type { WatchedAPI, WatchedAPIHealthSummary, AlertHistory } from '@/lib/types';
 
 export default function LandingPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
   const [healthSummaries, setHealthSummaries] = useState<WatchedAPIHealthSummary[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<AlertHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Redirect to dashboard if signed in
   useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Load data only if signed in
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setLoading(false);
+      return;
+    }
     loadData();
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   const loadData = async () => {
     try {
@@ -33,6 +49,24 @@ export default function LandingPage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (!isLoaded || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-slate-500">Loading...</p>
+      </div>
+    );
+  }
+
+  // If signed in, show loading while redirecting
+  if (isSignedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-slate-500">Redirecting to dashboard...</p>
+      </div>
+    );
+  }
 
   // Calculate stats
   const stats = {
@@ -61,22 +95,16 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link
-                href="/watched-apis"
+                href="/sign-in"
                 className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
               >
-                Dashboard
+                Sign In
               </Link>
               <Link
-                href="/alerts"
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
+                href="/sign-up"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all"
               >
-                Alerts
-              </Link>
-              <Link
-                href="/health"
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition-colors"
-              >
-                Health
+                Get Started
               </Link>
             </div>
           </div>
@@ -110,22 +138,22 @@ export default function LandingPage() {
 
             <div className="flex items-center justify-center gap-4">
               <Link
-                href="/watched-apis"
+                href="/sign-up"
                 className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-xl transition-all shadow-2xl shadow-purple-500/50 hover:shadow-purple-500/70 hover:-translate-y-1 text-lg"
               >
                 Get Started
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
-                href="/health"
+                href="/sign-in"
                 className="flex items-center gap-2 px-8 py-4 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all border border-slate-300 dark:border-slate-700 text-lg"
               >
-                View Dashboard
+                Sign In
               </Link>
             </div>
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats - Only show if user has data */}
           {!loading && watchedAPIs.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-16">
               <QuickStatCard
@@ -175,48 +203,48 @@ export default function LandingPage() {
               title="Automatic Polling"
               description="Continuously monitor external APIs on your schedule - hourly, daily, or weekly."
               color="purple"
-              link="/watched-apis"
+              link="/sign-up"
             />
             <FeatureCard
               icon={<Shield className="h-8 w-8" />}
               title="Breaking Change Detection"
               description="AI-powered analysis identifies breaking changes before they impact your users."
               color="cyan"
-              link="/alert-history"
+              link="/sign-up"
             />
             <FeatureCard
               icon={<Bell className="h-8 w-8" />}
               title="Smart Alerts"
               description="Get notified via email, Slack, or webhook when issues are detected."
               color="purple"
-              link="/alerts"
+              link="/sign-up"
             />
             <FeatureCard
               icon={<Activity className="h-8 w-8" />}
               title="Health Monitoring"
               description="Track endpoint uptime, response times, and availability metrics."
               color="green"
-              link="/health"
+              link="/sign-up"
             />
             <FeatureCard
               icon={<Clock className="h-8 w-8" />}
               title="Historical Tracking"
               description="Complete audit trail of all API changes and alert history."
               color="cyan"
-              link="/alert-history"
+              link="/sign-up"
             />
             <FeatureCard
               icon={<TrendingUp className="h-8 w-8" />}
               title="Performance Insights"
               description="Visualize trends and patterns with beautiful charts and graphs."
               color="purple"
-              link="/health"
+              link="/sign-up"
             />
           </div>
         </div>
       </section>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - Only show if user has data */}
       {!loading && (watchedAPIs.length > 0 || recentAlerts.length > 0) && (
         <section className="py-20 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-8">
@@ -331,10 +359,10 @@ export default function LandingPage() {
             Add your first API and start getting alerts about changes that matter.
           </p>
           <Link
-            href="/watched-apis"
+            href="/sign-up"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-xl transition-all shadow-2xl shadow-purple-500/50 hover:shadow-purple-500/70 hover:-translate-y-1 text-lg"
           >
-            Add Your First API
+            Get Started Free
             <ArrowRight className="h-5 w-5" />
           </Link>
         </div>

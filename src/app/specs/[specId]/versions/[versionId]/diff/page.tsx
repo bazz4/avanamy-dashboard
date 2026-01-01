@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
 import { RefreshCw, ArrowLeft, GitCompare, FileCode, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -9,6 +10,7 @@ import type { VersionDiff } from '@/lib/types';
 import { DiffViewer } from '@/components/DiffViewer';
 
 export default function DiffPage() {
+  const { isLoaded } = useAuth();
   const params = useParams();
   const router = useRouter();
   const specId = params.specId as string;
@@ -19,8 +21,9 @@ export default function DiffPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadDiff();
-  }, [specId, versionId]);
+  }, [isLoaded, specId, versionId]);
 
   const loadDiff = async () => {
     try {
@@ -47,7 +50,7 @@ export default function DiffPage() {
     });
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">

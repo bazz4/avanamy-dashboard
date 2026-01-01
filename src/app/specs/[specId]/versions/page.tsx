@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
 import { RefreshCw, GitBranch, Eye, Calendar, FileText, Sparkles } from 'lucide-react';
 import { getSpecVersions } from '@/lib/api';
 import type { SpecVersion } from '@/lib/types';
 
 export default function VersionsPage() {
+  const { isLoaded } = useAuth();
   const params = useParams();
   const router = useRouter();
   const specId = params.specId as string;
@@ -16,8 +18,9 @@ export default function VersionsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     loadVersions();
-  }, [specId]);
+  }, [isLoaded, specId]);
 
   const loadVersions = async () => {
     try {
@@ -48,7 +51,7 @@ export default function VersionsPage() {
     });
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-3 text-slate-400 dark:text-slate-400">

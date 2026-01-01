@@ -3,8 +3,18 @@
 import "./globals.css";
 import React from "react";
 import { usePathname } from "next/navigation";
-import { Activity, AlertCircle, Radio, Database, Sun, Moon } from "lucide-react";
+import { 
+  LayoutDashboard,
+  Radio, 
+  Building2, 
+  Package, 
+  Bell, 
+  Activity, 
+  Sun, 
+  Moon 
+} from "lucide-react";
 import { AvanamyLogo } from "@/components/AvanamyLogo";
+import { UserMenu } from '@/components/UserMenu';
 import { NavLink } from "@/components/NavLink";
 import { useTheme } from "@/hooks/useTheme";
 import { ClerkProvider } from '@clerk/nextjs';
@@ -15,15 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLandingPage = pathname === '/';
+  const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
   const { theme, toggleTheme, mounted } = useTheme();
 
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
-          <title>Avanamy - API Monitoring Platform</title>
-          <meta name="description" content="Monitor external APIs, track changes, and get real-time alerts" />
+          <title>Avanamy - API Dependency Intelligence</title>
+          <meta name="description" content="Monitor external APIs for changes and detect impact on your code" />
           <link rel="icon" href="/favicon.svg" />
           <script
             dangerouslySetInnerHTML={{
@@ -50,41 +60,84 @@ export default function RootLayout({
           </a>
 
           <div className="flex min-h-screen">
-            {/* Sidebar Navigation - Hidden on landing page */}
-            {!isLandingPage && (
+            {/* Sidebar Navigation - Hidden on auth pages */}
+            {!isAuthPage && (
               <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
                 <div className="sticky top-0 flex h-screen flex-col p-6">
+                  {/* Logo */}
                   <div className="mb-8 flex items-center gap-3">
                     <AvanamyLogo size={40} variant="color" alt="Avanamy API Monitoring Platform" />
                     <div>
                       <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                         Avanamy
                       </h1>
-                      <p className="text-xs text-slate-500">API Monitoring</p>
+                      <p className="text-xs text-slate-500">API Intelligence</p>
                     </div>
                   </div>
 
-                  <nav className="flex-1 space-y-1" aria-label="Main navigation">
-                    <NavLink href="/watched-apis" icon={<Radio className="h-4 w-4" aria-hidden="true" />}>
-                      Watched APIs
-                    </NavLink>
-                    <NavLink href="/alerts" icon={<AlertCircle className="h-4 w-4" aria-hidden="true" />}>
-                      Alert Configs
-                    </NavLink>
-                    <NavLink href="/alert-history" icon={<Activity className="h-4 w-4" aria-hidden="true" />}>
-                      Alert History
-                    </NavLink>
-                    <NavLink href="/health" icon={<Activity className="h-4 w-4" aria-hidden="true" />}>
-                      Health Dashboard
-                    </NavLink>
-
-                    <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+                  {/* Main Navigation */}
+                  <nav className="flex-1 space-y-6" aria-label="Main navigation">
+                    {/* Core Features */}
+                    <div>
                       <p className="text-xs text-slate-500 dark:text-slate-600 uppercase tracking-wider font-semibold mb-2 px-3">
-                        Legacy
+                        Monitoring
                       </p>
-                      <NavLink href="/providers" icon={<Database className="h-4 w-4" aria-hidden="true" />}>
-                        Providers
-                      </NavLink>
+                      <div className="space-y-1">
+                        <NavLink 
+                          href="/dashboard" 
+                          icon={<LayoutDashboard className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Dashboard
+                        </NavLink>
+                        <NavLink 
+                          href="/watched-apis" 
+                          icon={<Radio className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Watched APIs
+                        </NavLink>
+                      </div>
+                    </div>
+
+                    {/* API Management */}
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-600 uppercase tracking-wider font-semibold mb-2 px-3">
+                        API Catalog
+                      </p>
+                      <div className="space-y-1">
+                        <NavLink 
+                          href="/providers" 
+                          icon={<Building2 className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Providers
+                        </NavLink>
+                        <NavLink 
+                          href="/api-products" 
+                          icon={<Package className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          API Products
+                        </NavLink>
+                      </div>
+                    </div>
+
+                    {/* Alerts */}
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-600 uppercase tracking-wider font-semibold mb-2 px-3">
+                        Alerts
+                      </p>
+                      <div className="space-y-1">
+                        <NavLink 
+                          href="/alert-configs" 
+                          icon={<Bell className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Configurations
+                        </NavLink>
+                        <NavLink 
+                          href="/alert-history" 
+                          icon={<Activity className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          History
+                        </NavLink>
+                      </div>
                     </div>
                   </nav>
 
@@ -106,7 +159,13 @@ export default function RootLayout({
                     )}
                   </button>
 
-                  <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
+                  {/* User Menu */}
+                  <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <UserMenu />
+                  </div>
+
+                  {/* Status Indicator */}
+                  <div className="mt-4">
                     <div className="rounded-lg bg-slate-100 dark:bg-slate-900/50 p-3 text-xs text-slate-600 dark:text-slate-400" role="status" aria-live="polite">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true"></div>
@@ -120,7 +179,7 @@ export default function RootLayout({
 
             {/* Main Content */}
             <main id="main-content" className="flex-1">
-              <div className={isLandingPage ? "" : "mx-auto max-w-7xl px-8 py-8"}>
+              <div className={isAuthPage ? "" : "mx-auto max-w-7xl px-8 py-8"}>
                 {children}
               </div>
             </main>
