@@ -483,3 +483,57 @@ export function getLatestDocumentation(
 }> {
   return apiGet(`/docs/${specId}/latest?format=${format}`);
 }
+
+// API Product Types & Functions
+export interface ApiProduct {
+  id: string;
+  tenant_id: string;
+  provider_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string | null;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+  provider_name: string | null;
+  provider_slug: string | null;
+}
+
+export interface ApiProductCreate {
+  name: string;
+  slug: string;
+  provider_id: string;
+  description?: string | null;
+}
+
+export interface ApiProductUpdate {
+  name?: string;
+  slug?: string;
+  provider_id?: string;
+  description?: string | null;
+}
+
+export async function getApiProducts(providerId?: string): Promise<ApiProduct[]> {
+  const query = providerId ? `?provider_id=${providerId}` : '';
+  return apiGet<ApiProduct[]>(`/api-products${query}`);
+}
+
+export async function getApiProduct(productId: string): Promise<ApiProduct> {
+  return apiGet<ApiProduct>(`/api-products/${productId}`);
+}
+
+export async function createApiProduct(data: ApiProductCreate): Promise<ApiProduct> {
+  return apiPost<ApiProduct>('/api-products', data);
+}
+
+export async function updateApiProduct(
+  productId: string,
+  data: ApiProductUpdate
+): Promise<ApiProduct> {
+  return apiPut<ApiProduct>(`/api-products/${productId}`, data);
+}
+
+export async function deleteApiProduct(productId: string): Promise<void> {
+  return apiDelete(`/api-products/${productId}`);
+}

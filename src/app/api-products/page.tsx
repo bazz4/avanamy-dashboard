@@ -1,0 +1,316 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { Package, Plus, Search, Edit2, Trash2, Building2 } from 'lucide-react';
+import { getApiProducts, deleteApiProduct, getProviders } from '@/lib/api';
+import type { ApiProduct, Provider } from '@/lib/types';
+import { AddApiProductModal } from '@/components/AddApiProductModal';
+import { EditApiProductModal } from '@/components/EditApiProductModal';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+
+export default function ApiProductsPage() {
+  const { isLoaded } = useAuth();
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ApiProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<string>('all');
+  
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ApiProduct | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<ApiProduct | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    loadData();
+  }, [isLoaded]);
+
+  // Filter products when search query or provider filter changes
+  useEffect(() => {
+    let filtered = products;
+
+    // Filter by provider
+    if (selectedProvider !== 'all') {
+      filtered = filtered.filter(p => p.provider_id === selectedProvider);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.slug.toLowerCase().includes(query) ||
+          p.description?.toLowerCase().includes(query) ||
+          p.provider_name?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredProducts(filtered);
+  }, [searchQuery, selectedProvider, products]);
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      setError(null);
+      const [productsData, providersData] = await Promise.all([
+        getApiProducts(),
+        getProviders(),
+      ]);
+      setProducts(productsData);
+      setProviders(providersData);
+      setFilteredProducts(productsData);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(product: ApiProduct) {
+    try {
+      await deleteApiProduct(product.id);
+      await loadData();
+      setDeletingProduct(null);
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete product');
+    }
+  }
+
+  if (!isLoaded || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-slate-500" role="status">Loading API products...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">Error: {error}</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+            API Products
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Manage API products from your providers
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          disabled={providers.length === 0}
+          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50"
+          aria-label="Add new API product"
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          Add Product
+        </button>
+      </div>
+
+      {/* No providers warning */}
+      {providers.length === 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <Building2 className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                No providers yet
+              </h3>
+              <p className="text-yellow-700 dark:text-yellow-300 mb-4">
+                You need to create at least one provider before you can add API products.
+              </p>
+              <a
+                href="/providers"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-all"
+              >
+                Go to Providers
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search and Filter */}
+      {providers.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              aria-label="Search API products"
+            />
+          </div>
+
+          {/* Provider Filter */}
+          <div className="sm:w-64">
+            <label htmlFor="provider-filter" className="sr-only">Filter by provider</label>
+            <select
+              id="provider-filter"
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              aria-label="Filter API products by provider"
+            >
+              <option value="all">All Providers</option>
+              {providers.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <Package className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" aria-hidden="true" />
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+            {searchQuery || selectedProvider !== 'all' ? 'No products found' : 'No API products yet'}
+          </h3>
+          <p className="text-slate-500 mb-6">
+            {searchQuery || selectedProvider !== 'all'
+              ? 'Try adjusting your search or filter'
+              : 'Get started by adding your first API product'}
+          </p>
+          {!searchQuery && selectedProvider === 'all' && providers.length > 0 && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+            >
+              <Plus className="h-5 w-5" aria-hidden="true" />
+              Add Your First Product
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <article
+              key={product.id}
+              className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500 dark:hover:border-purple-500 transition-all group"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Package className="h-6 w-6 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 truncate">
+                      {product.slug}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Provider Badge */}
+              {product.provider_name && (
+                <div className="mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-full">
+                    <Building2 className="h-3 w-3 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                      {product.provider_name}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {product.description && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                  {product.description}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setEditingProduct(product)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all"
+                  aria-label={`Edit ${product.name}`}
+                >
+                  <Edit2 className="h-4 w-4" aria-hidden="true" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeletingProduct(product)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all"
+                  aria-label={`Delete ${product.name}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  Delete
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {/* Modals */}
+      {showAddModal && (
+        <AddApiProductModal
+          providers={providers}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            loadData();
+            setShowAddModal(false);
+          }}
+        />
+      )}
+
+      {editingProduct && (
+        <EditApiProductModal
+          product={editingProduct}
+          providers={providers}
+          onClose={() => setEditingProduct(null)}
+          onSuccess={() => {
+            loadData();
+            setEditingProduct(null);
+          }}
+        />
+      )}
+
+      {deletingProduct && (
+        <DeleteConfirmDialog
+          title="Delete API Product"
+          message={`Are you sure you want to delete "${deletingProduct.name}"? This action cannot be undone.`}
+          onConfirm={() => handleDelete(deletingProduct)}
+          onCancel={() => setDeletingProduct(null)}
+        />
+      )}
+    </div>
+  );
+}

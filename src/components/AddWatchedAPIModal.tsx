@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Loader2 } from 'lucide-react';
-import { getProviders, getProductsForProvider, createWatchedAPI } from '@/lib/api';
+import { getProviders, getApiProducts, createWatchedAPI } from '@/lib/api';
 import type { Provider, ApiProduct } from '@/lib/types';
 
 interface AddWatchedAPIModalProps {
@@ -75,7 +75,7 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
   const loadProducts = async (providerId: string) => {
     try {
       setLoading(true);
-      const data = await getProductsForProvider(providerId);
+      const data = await getApiProducts(providerId);
       setProducts(data);
     } catch (err) {
       console.error('Failed to load products:', err);

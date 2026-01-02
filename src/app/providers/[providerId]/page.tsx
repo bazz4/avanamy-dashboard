@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProductsForProvider } from "@/lib/api";
+import { getApiProducts } from "@/lib/api";
 
 export default async function ProviderProductsPage({
   params,
@@ -9,7 +9,7 @@ export default async function ProviderProductsPage({
   // ⬅️ Required for Next.js 15/16
   const { providerId } = await params;
 
-  const products = await getProductsForProvider(providerId);
+  const products = await getApiProducts(providerId);
 
   return (
     <div className="space-y-4">

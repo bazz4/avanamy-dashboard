@@ -32,9 +32,31 @@ export interface ProviderUpdate {
 
 export interface ApiProduct {
   id: string;
+  tenant_id: string;
   provider_id: string;
   name: string;
   slug: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string | null;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+  provider_name: string | null;
+  provider_slug: string | null;
+}
+
+export interface ApiProductCreate {
+  name: string;
+  slug: string;
+  provider_id: string;
+  description?: string | null;
+}
+
+export interface ApiProductUpdate {
+  name?: string;
+  slug?: string;
+  provider_id?: string;
+  description?: string | null;
 }
 
 export interface ApiSpec {
