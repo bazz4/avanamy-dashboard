@@ -45,13 +45,13 @@ async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function apiPost<T>(path: string, body?: any, init?: RequestInit): Promise<T> {
-  const token = await getClerkToken();  // ADD THIS LINE
+  const token = await getClerkToken();
   
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
     headers: {
-      'Authorization': token ? `Bearer ${token}` : '',  // ADD THIS LINE
+      'Authorization': token ? `Bearer ${token}` : '',
       ...(body instanceof FormData
         ? init?.headers
         : { "Content-Type": "application/json", ...(init?.headers ?? {}) }),
@@ -62,7 +62,19 @@ async function apiPost<T>(path: string, body?: any, init?: RequestInit): Promise
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     console.error(`POST ${path} failed`, res.status, text);
-    throw new Error(`API POST ${path} failed: ${res.status}`);
+    
+    // NEW: Try to parse error detail from response
+    let errorMessage = `API POST ${path} failed: ${res.status}`;
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // If JSON parsing fails, keep the default message
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return res.json().catch(() => ({} as T));
@@ -200,7 +212,19 @@ async function apiPut<T>(path: string, body?: any, init?: RequestInit): Promise<
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     console.error(`PUT ${path} failed`, res.status, text);
-    throw new Error(`API PUT ${path} failed: ${res.status}`);
+    
+    // NEW: Try to parse error detail from response
+    let errorMessage = `API PUT ${path} failed: ${res.status}`;
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // If JSON parsing fails, keep the default message
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return res.json() as Promise<T>;

@@ -22,17 +22,112 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Normalize URL - prepend https:// if no protocol
+  function normalizeUrl(url: string): string {
+    if (!url.trim()) return url;
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  }
+
+  // Handle website blur (normalize URL)
+  function handleWebsiteBlur() {
+    if (formData.website) {
+      setFormData({
+        ...formData,
+        website: normalizeUrl(formData.website),
+      });
+    }
+  }
+
+  // Handle logo URL blur (normalize URL)
+  function handleLogoUrlBlur() {
+    if (formData.logo_url) {
+      setFormData({
+        ...formData,
+        logo_url: normalizeUrl(formData.logo_url),
+      });
+    }
+  }
+
+  // Validate URL format properly
+  function isValidUrl(url: string): boolean {
+    if (!url.trim()) return true; // Empty is OK (optional field)
+    
+    try {
+      const parsed = new URL(url);
+      // Check that hostname exists and doesn't contain spaces
+      if (!parsed.hostname || parsed.hostname.includes(' ')) {
+        return false;
+      }
+      // Check protocol is http or https
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return false;
+      }
+      // Check hostname has at least one dot (like example.com)
+      if (!parsed.hostname.includes('.')) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Validate required fields
+    if (formData.name && !formData.name.trim()) {
+      setError('Provider name cannot be empty');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.slug && !formData.slug.trim()) {
+      setError('Slug cannot be empty');
+      setLoading(false);
+      return;
+    }
+
+    // Validate URL format if provided
+    if (formData.website && formData.website.trim()) {
+      if (!isValidUrl(formData.website)) {
+        setError('Please enter a valid website URL');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (formData.logo_url && formData.logo_url.trim()) {
+      if (!isValidUrl(formData.logo_url)) {
+        setError('Please enter a valid logo URL');
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       await updateProvider(provider.id, formData);
       onSuccess();
     } catch (err) {
       console.error('Error updating provider:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update provider');
+      // Parse backend error for better messages
+      let errorMessage = 'Failed to update provider';
+      if (err instanceof Error) {
+        if (err.message.includes('slug') && err.message.includes('already exists')) {
+          errorMessage = 'A provider with this slug already exists. Please use a different slug.';
+        } else if (err.message.includes('400')) {
+          errorMessage = err.message.replace('API PUT /providers/' + provider.id + ' failed: 400', 'Validation error: ');
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -61,7 +156,7 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {error && (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -76,7 +171,6 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
             <input
               id="edit-name"
               type="text"
-              required
               value={formData.name || ''}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Stripe"
@@ -92,7 +186,6 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
             <input
               id="edit-slug"
               type="text"
-              required
               value={formData.slug || ''}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               placeholder="e.g., stripe"
@@ -110,12 +203,16 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
             </label>
             <input
               id="edit-website"
-              type="url"
+              type="text"
               value={formData.website || ''}
               onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              placeholder="https://stripe.com"
+              onBlur={handleWebsiteBlur}
+              placeholder="stripe.com (https:// will be added automatically)"
               className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              https:// will be added automatically if not provided
+            </p>
           </div>
 
           {/* Logo URL */}
@@ -125,12 +222,16 @@ export function EditProviderModal({ provider, onClose, onSuccess }: EditProvider
             </label>
             <input
               id="edit-logo-url"
-              type="url"
+              type="text"
               value={formData.logo_url || ''}
               onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-              placeholder="https://example.com/logo.png"
+              onBlur={handleLogoUrlBlur}
+              placeholder="example.com/logo.png (https:// will be added automatically)"
               className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              https:// will be added automatically if not provided
+            </p>
           </div>
 
           {/* Description */}

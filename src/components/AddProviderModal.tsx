@@ -30,17 +30,203 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
     });
   }
 
+  // Normalize URL - prepend https:// if no protocol
+  function normalizeUrl(url: string): string {
+    if (!url.trim()) return url;
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  }
+
+  // Handle website blur (normalize URL)
+  function handleWebsiteBlur() {
+    if (formData.website) {
+      setFormData({
+        ...formData,
+        website: normalizeUrl(formData.website),
+      });
+    }
+  }
+
+  // Handle logo URL blur (normalize URL)
+  function handleLogoUrlBlur() {
+    if (formData.logo_url) {
+      setFormData({
+        ...formData,
+        logo_url: normalizeUrl(formData.logo_url),
+      });
+    }
+  }
+
+  // Validate URL format properly
+  function isValidUrl(url: string): boolean {
+    if (!url.trim()) return true; // Empty is OK (optional field)
+    
+    const trimmed = url.trim();
+    
+    // Check for spaces (invalid in URLs)
+    if (trimmed.includes(' ')) {
+      console.log('URL has spaces:', trimmed);
+      return false;
+    }
+    
+    try {
+      const parsed = new URL(trimmed);
+      
+      console.log('Parsed URL:', {
+        href: parsed.href,
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+      });
+      
+      // Must be http or https
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        console.log('Invalid protocol:', parsed.protocol);
+        return false;
+      }
+      
+      // Must have valid hostname (no spaces)
+      if (!parsed.hostname || parsed.hostname.trim() === '') {
+        console.log('Empty hostname');
+        return false;
+      }
+      
+      // Hostname must have at least one dot (example.com)
+      if (!parsed.hostname.includes('.')) {
+        console.log('No dot in hostname:', parsed.hostname);
+        return false;
+      }
+      
+      // Hostname must not have spaces
+      if (parsed.hostname.includes(' ')) {
+        console.log('Hostname has spaces:', parsed.hostname);
+        return false;
+      }
+      
+      console.log('URL is valid!');
+      return true;
+    } catch (err) {
+      console.log('URL parse error:', err);
+      return false;
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    console.log('=== VALIDATION STARTING ===');
+    console.log('Form data:', formData);
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      console.log('❌ Name validation failed');
+      setError('Provider name is required');
+      setLoading(false);
+      return;
+    }
+    console.log('✅ Name validation passed');
+
+    if (!formData.slug.trim()) {
+      console.log('❌ Slug validation failed');
+      setError('Slug is required');
+      setLoading(false);
+      return;
+    }
+    console.log('✅ Slug validation passed');
+
+    // Validate URL format if provided
+    if (formData.website && formData.website.trim()) {
+      console.log('Checking website URL:', formData.website);
+      if (!isValidUrl(formData.website)) {
+        console.log('❌ Website validation failed');
+        setError('Please enter a valid website URL (e.g., https://stripe.com)');
+        setLoading(false);
+        return;
+      }
+      console.log('✅ Website validation passed');
+    }
+
+    if (formData.logo_url && formData.logo_url.trim()) {
+      console.log('Checking logo URL:', formData.logo_url);
+      if (!isValidUrl(formData.logo_url)) {
+        console.log('❌ Logo URL validation failed');
+        setError('Please enter a valid logo URL (e.g., https://example.com/logo.png)');
+        setLoading(false);
+        return;
+      }
+      console.log('✅ Logo URL validation passed');
+    }
+
+    // Clean data - remove empty strings and send null instead
+    const cleanData: ProviderCreate = {
+      name: formData.name.trim(),
+      slug: formData.slug.trim(),
+      website: formData.website?.trim() || null,
+      logo_url: formData.logo_url?.trim() || null,
+      description: formData.description?.trim() || null,
+    };
+
+    console.log('✅ All validation passed! Sending:', cleanData);
+
     try {
-      await createProvider(formData);
+      await createProvider(cleanData);
       onSuccess();
-    } catch (err) {
-      console.error('Error creating provider:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create provider');
+    } catch (err: any) {
+      console.error('❌ API Error:', err);
+      console.log('Error object:', {
+        message: err?.message,
+        detail: err?.detail,
+        response: err?.response,
+      });
+      
+      // Parse backend error for better messages
+      let errorMessage = 'Failed to create provider';
+      
+      // Try to get the detail from the error
+      if (err?.detail) {
+        errorMessage = err.detail;
+      } else if (err?.message) {
+        // Check if message contains 'already exists'
+        if (err.message.includes('already exists')) {
+          errorMessage = 'A provider with this slug already exists. Please use a different slug.';
+        } 
+        // Try to extract JSON from error message
+        else {
+          // Look for JSON in the error message
+          const jsonMatch = err.message.match(/\{.*\}/);
+          if (jsonMatch) {
+            try {
+              const errorData = JSON.parse(jsonMatch[0]);
+              if (errorData.detail) {
+                errorMessage = errorData.detail;
+              }
+            } catch {
+              // If JSON parsing fails, use the original message
+              errorMessage = err.message
+                .replace('API POST /providers failed: 400', '')
+                .replace('API POST /providers failed:', '')
+                .trim();
+            }
+          } else {
+            errorMessage = err.message
+              .replace('API POST /providers failed: 400', '')
+              .replace('API POST /providers failed:', '')
+              .trim();
+          }
+        }
+      }
+      
+      // Fallback if message is empty
+      if (!errorMessage || errorMessage === 'Failed to create provider') {
+        errorMessage = 'Validation failed. Please check your input.';
+      }
+      
+      console.log('Final error message:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -69,7 +255,7 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {error && (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -84,7 +270,6 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
             <input
               id="name"
               type="text"
-              required
               value={formData.name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="e.g., Stripe"
@@ -100,7 +285,6 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
             <input
               id="slug"
               type="text"
-              required
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               placeholder="e.g., stripe"
@@ -118,12 +302,16 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
             </label>
             <input
               id="website"
-              type="url"
+              type="text"
               value={formData.website || ''}
               onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              placeholder="https://stripe.com"
+              onBlur={handleWebsiteBlur}
+              placeholder="stripe.com (https:// will be added automatically)"
               className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              https:// will be added automatically if not provided
+            </p>
           </div>
 
           {/* Logo URL */}
@@ -133,12 +321,16 @@ export function AddProviderModal({ onClose, onSuccess }: AddProviderModalProps) 
             </label>
             <input
               id="logo_url"
-              type="url"
+              type="text"
               value={formData.logo_url || ''}
               onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-              placeholder="https://example.com/logo.png"
+              onBlur={handleLogoUrlBlur}
+              placeholder="example.com/logo.png (https:// will be added automatically)"
               className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              https:// will be added automatically if not provided
+            </p>
           </div>
 
           {/* Description */}
