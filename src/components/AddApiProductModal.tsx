@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { createApiProduct } from '@/lib/api';
 import type { ApiProductCreate, Provider } from '@/lib/types';
 
@@ -9,17 +10,27 @@ interface AddApiProductModalProps {
   providers: Provider[];
   onClose: () => void;
   onSuccess: () => void;
+  defaultProviderId?: string | null;
 }
 
-export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProductModalProps) {
+export function AddApiProductModal({ providers, onClose, onSuccess, defaultProviderId }: AddApiProductModalProps) {
   const [formData, setFormData] = useState<ApiProductCreate>({
     name: '',
     slug: '',
-    provider_id: providers[0]?.id || '',
+    provider_id: '',
     description: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
+
+  // Set default provider when modal opens or defaultProviderId changes
+  useEffect(() => {
+    if (defaultProviderId && providers.some(p => p.id === defaultProviderId)) {
+      setFormData(prev => ({ ...prev, provider_id: defaultProviderId }));
+    }
+    setShowValidation(false);
+  }, [defaultProviderId, providers]);
 
   // Auto-generate slug from name
   function handleNameChange(name: string) {
@@ -35,8 +46,6 @@ export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProd
     setLoading(true);
     setError(null);
 
-    console.log('=== VALIDATION STARTING ===');
-
     // Validate required fields
     if (!formData.name.trim()) {
       setError('Product name is required');
@@ -51,7 +60,10 @@ export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProd
     }
 
     if (!formData.provider_id) {
-      setError('Provider is required');
+      setShowValidation(true);
+      toast.error('Validation failed', {
+        description: 'Please select a provider',
+      });
       setLoading(false);
       return;
     }
@@ -64,10 +76,11 @@ export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProd
       description: formData.description?.trim() || null,
     };
 
-    console.log('Sending:', cleanData);
-
     try {
       await createApiProduct(cleanData);
+      toast.success('API Product created successfully', {
+        description: `${cleanData.name} is now available`,
+      });
       onSuccess();
     } catch (err: any) {
       console.error('Error creating product:', err);
@@ -106,6 +119,9 @@ export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProd
         errorMessage = 'Validation failed. Please check your input.';
       }
       
+      toast.error('Failed to create API product', {
+        description: errorMessage || 'Please check your input and try again',
+      });
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -150,15 +166,28 @@ export function AddApiProductModal({ providers, onClose, onSuccess }: AddApiProd
             <select
               id="provider"
               value={formData.provider_id}
-              onChange={(e) => setFormData({ ...formData, provider_id: e.target.value })}
-              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onChange={(e) => {
+                setFormData({ ...formData, provider_id: e.target.value });
+                setShowValidation(false);
+              }}
+              className={`w-full px-4 py-2 bg-white dark:bg-slate-800 border rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                !formData.provider_id && showValidation 
+                  ? 'border-red-500' 
+                  : 'border-slate-200 dark:border-slate-700'
+              }`}
             >
+              <option value="" disabled>Select a provider...</option>
               {providers.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.name}
                 </option>
               ))}
             </select>
+            {!formData.provider_id && showValidation && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                Please select a provider
+              </p>
+            )}
           </div>
 
           {/* Product Name */}

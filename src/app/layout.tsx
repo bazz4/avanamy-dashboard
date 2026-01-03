@@ -18,6 +18,7 @@ import { UserMenu } from '@/components/UserMenu';
 import { NavLink } from "@/components/NavLink";
 import { useTheme } from "@/hooks/useTheme";
 import { ClerkProvider } from '@clerk/nextjs';
+import { Toaster } from "@/components/ui/sonner"
 
 export default function RootLayout({
   children,
@@ -184,6 +185,7 @@ export default function RootLayout({
               </div>
             </main>
           </div>
+          <Toaster position="top-center" richColors />
         </body>
       </html>
     </ClerkProvider>

@@ -252,12 +252,12 @@ async function apiPatch<T>(path: string, body?: any, init?: RequestInit): Promis
 }
 
 async function apiDelete(path: string, init?: RequestInit): Promise<void> {
-  const token = await getClerkToken();  // ADD THIS LINE
+  const token = await getClerkToken();
   
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
     headers: { 
-      'Authorization': token ? `Bearer ${token}` : '',  // ADD THIS LINE
+      'Authorization': token ? `Bearer ${token}` : '',
       ...(init?.headers ?? {}) 
     },
     ...init,
@@ -265,7 +265,29 @@ async function apiDelete(path: string, init?: RequestInit): Promise<void> {
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     console.error(`DELETE ${path} failed`, res.status, text);
-    throw new Error(`API DELETE ${path} failed: ${res.status}`);
+    
+    // Try to parse error detail from response
+    let errorDetail = `API DELETE ${path} failed: ${res.status}`;
+    if (text) {
+      try {
+        const errorData = JSON.parse(text);
+        if (errorData.detail) {
+          // Handle structured error from backend
+          if (typeof errorData.detail === 'object' && errorData.detail.message) {
+            errorDetail = errorData.detail.message;
+          } else if (typeof errorData.detail === 'string') {
+            errorDetail = errorData.detail;
+          }
+        }
+      } catch {
+        // If not JSON, use the text as-is (or keep default)
+        if (text.length < 200) {
+          errorDetail = text;
+        }
+      }
+    }
+    
+    throw new Error(errorDetail);
   }
 }
 
@@ -536,4 +558,57 @@ export async function updateApiProduct(
 
 export async function deleteApiProduct(productId: string): Promise<void> {
   return apiDelete(`/api-products/${productId}`);
+}
+
+// API Spec Upload
+export async function uploadApiSpec(
+  productId: string,
+  file: File,
+  name?: string,
+  version?: string
+): Promise<any> {
+  const token = await getClerkToken();
+
+  const formData = new FormData();
+  formData.append('file', file);
+  if (name) formData.append('name', name);
+  if (version) formData.append('version', version);
+
+  // Send api_product_id as query parameter
+  const queryParams = new URLSearchParams({
+    api_product_id: productId
+  });
+
+  const res = await fetch(`${API_BASE_URL}/api-specs/upload?${queryParams}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    let errorMessage = `Failed to upload spec (${res.status})`;
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.detail) {
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail
+            .map((err: any) => {
+              const location = err.loc?.slice(1).join('.') || 'Field';
+              return `${location}: ${err.msg}`;
+            })
+            .join('; ');
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+      }
+    } catch {
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return res.json();
 }

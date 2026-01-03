@@ -43,6 +43,9 @@ export interface ApiProduct {
   updated_by_user_id: string | null;
   provider_name: string | null;
   provider_slug: string | null;
+  latest_spec_id?: string | null;
+  latest_spec_version?: string | null;
+  latest_spec_uploaded_at?: string | null;
 }
 
 export interface ApiProductCreate {

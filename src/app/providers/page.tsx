@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Building2, Plus, Search, Edit2, Trash2, Globe, ExternalLink } from 'lucide-react';
+import { Building2, Plus, Search, Edit2, Trash2, Globe, ExternalLink, Archive } from 'lucide-react';
+import { toast } from 'sonner';
 import { getProviders, deleteProvider } from '@/lib/api';
 import type { Provider } from '@/lib/types';
 import { AddProviderModal } from '@/components/AddProviderModal';
@@ -64,9 +65,47 @@ export default function ProvidersPage() {
       await deleteProvider(provider.id);
       await loadProviders();
       setDeletingProvider(null);
-    } catch (err) {
+      toast.success('Provider deleted successfully', {
+        description: `${provider.name} has been removed`,
+      });
+    } catch (err: any) {
       console.error('Error deleting provider:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete provider');
+      
+      // Parse structured error from backend
+      let errorMessage = 'Please try again';
+      let canArchive = false;
+      
+      if (err?.message) {
+        // Try to extract JSON from error message
+        const jsonMatch = err.message.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const errorData = JSON.parse(jsonMatch[0]);
+            if (errorData.message) {
+              errorMessage = errorData.message;
+              canArchive = errorData.can_archive || false;
+            } else if (errorData.detail) {
+              // Handle both formats
+              if (typeof errorData.detail === 'object') {
+                errorMessage = errorData.detail.message || errorData.detail;
+                canArchive = errorData.detail.can_archive || false;
+              } else {
+                errorMessage = errorData.detail;
+              }
+            }
+          } catch (parseErr) {
+            // If JSON parse fails, use the original message
+            errorMessage = err.message;
+          }
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      toast.error('Cannot delete provider', {
+        description: errorMessage,
+        duration: 7000,
+      });
     }
   }
 

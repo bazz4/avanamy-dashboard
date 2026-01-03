@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Package, Plus, Search, Edit2, Trash2, Building2 } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Building2, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getApiProducts, deleteApiProduct, getProviders } from '@/lib/api';
 import type { ApiProduct, Provider } from '@/lib/types';
 import { AddApiProductModal } from '@/components/AddApiProductModal';
 import { EditApiProductModal } from '@/components/EditApiProductModal';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { UploadSpecModal } from '@/components/UploadSpecModal';
 
 export default function ApiProductsPage() {
   const { isLoaded } = useAuth();
@@ -18,6 +20,8 @@ export default function ApiProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
+  const [filterProviderId, setFilterProviderId] = useState<string | null>(null);
+  const [uploadingProduct, setUploadingProduct] = useState<ApiProduct | null>(null);
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -77,11 +81,52 @@ export default function ApiProductsPage() {
       await deleteApiProduct(product.id);
       await loadData();
       setDeletingProduct(null);
-    } catch (err) {
+      toast.success('API Product deleted successfully', {
+        description: `${product.name} has been removed`,
+      });
+    } catch (err: any) {
       console.error('Error deleting product:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete product');
+      
+      // Extract user-friendly error message
+      let errorMessage = 'Failed to delete API product';
+      if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      toast.error('Cannot delete API product', {
+        description: errorMessage,
+        duration: 7000,
+      });
     }
   }
+
+  // Format date helper
+  function formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
+  }
+
+  // Group products by provider
+  const groupedProducts = filteredProducts.reduce((acc, product) => {
+    const providerId = product.provider_id;
+    if (!acc[providerId]) {
+      acc[providerId] = {
+        provider: {
+          id: providerId,
+          name: product.provider_name || 'Unknown Provider',
+          slug: product.provider_slug || '',
+        },
+        products: []
+      };
+    }
+    acc[providerId].products.push(product);
+    return acc;
+  }, {} as Record<string, { provider: { id: string; name: string; slug: string }; products: ApiProduct[] }>);
 
   if (!isLoaded || loading) {
     return (
@@ -175,7 +220,11 @@ export default function ApiProductsPage() {
             <select
               id="provider-filter"
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedProvider(value);
+                setFilterProviderId(value === 'all' ? null : value);
+              }}
               className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               aria-label="Filter API products by provider"
             >
@@ -190,7 +239,7 @@ export default function ApiProductsPage() {
         </div>
       )}
 
-      {/* Products Grid */}
+      {/* Products Grid - Grouped by Provider */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl">
           <Package className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" aria-hidden="true" />
@@ -213,68 +262,118 @@ export default function ApiProductsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
-            <article
-              key={product.id}
-              className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500 dark:hover:border-purple-500 transition-all group"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Package className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 truncate">
-                      {product.slug}
-                    </p>
-                  </div>
-                </div>
+        <div className="space-y-8">
+          {Object.values(groupedProducts).map((group) => (
+            <div key={group.provider.id} className="space-y-4">
+              {/* Provider Header */}
+              <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800">
+                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {group.provider.name}
+                </h2>
+                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full">
+                  {group.products.length} {group.products.length === 1 ? 'product' : 'products'}
+                </span>
               </div>
 
-              {/* Provider Badge */}
-              {product.provider_name && (
-                <div className="mb-4">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-full">
-                    <Building2 className="h-3 w-3 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                      {product.provider_name}
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Products Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {group.products.map((product) => (
+                  <article
+                    key={product.id}
+                    className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500 dark:hover:border-purple-500 transition-all group"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Package className="h-6 w-6 text-white" aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 truncate">
+                            {product.slug}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Description */}
-              {product.description && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                  {product.description}
-                </p>
-              )}
+                    {/* Spec Status Badge */}
+                    {product.latest_spec_id ? (
+                      <div className="mb-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                              API Spec Available
+                            </p>
+                            <p className="text-xs text-green-700 dark:text-green-300">
+                              Version {product.latest_spec_version} • {formatDate(product.latest_spec_uploaded_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" aria-hidden="true" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                              No API Spec
+                            </p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              Upload to get started
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  onClick={() => setEditingProduct(product)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all"
-                  aria-label={`Edit ${product.name}`}
-                >
-                  <Edit2 className="h-4 w-4" aria-hidden="true" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => setDeletingProduct(product)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all"
-                  aria-label={`Delete ${product.name}`}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  Delete
-                </button>
+                    {/* Description */}
+                    {product.description && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                        {product.description}
+                      </p>
+                    )}
+
+                    {/* Actions */}
+                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                      {/* Upload button - full width */}
+                      <button
+                        onClick={() => setUploadingProduct(product)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all"
+                        aria-label={`Upload spec for ${product.name}`}
+                      >
+                        <Upload className="h-4 w-4" aria-hidden="true" />
+                        {product.latest_spec_id ? 'Update Spec' : 'Upload Spec'}
+                      </button>
+                      
+                      {/* Edit and Delete - side by side */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all"
+                          aria-label={`Edit ${product.name}`}
+                        >
+                          <Edit2 className="h-4 w-4" aria-hidden="true" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeletingProduct(product)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all"
+                          aria-label={`Delete ${product.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </article>
+            </div>
           ))}
         </div>
       )}
@@ -288,6 +387,7 @@ export default function ApiProductsPage() {
             loadData();
             setShowAddModal(false);
           }}
+          defaultProviderId={filterProviderId}
         />
       )}
 
@@ -311,6 +411,21 @@ export default function ApiProductsPage() {
           onCancel={() => setDeletingProduct(null)}
         />
       )}
+
+      {uploadingProduct && (
+        <UploadSpecModal
+            product={uploadingProduct}
+            onClose={() => setUploadingProduct(null)}
+            onSuccess={() => {
+            setUploadingProduct(null);
+            loadData(); // Reload to show updated spec info
+            toast.success('API Spec uploaded successfully', {
+              description: 'Your specification is now available',
+              duration: 5000,
+            });
+            }}
+        />
+        )}
     </div>
   );
 }
