@@ -457,7 +457,8 @@ export default function ApiProductsPage() {
       {deletingProduct && (
         <DeleteConfirmDialog
           title="Delete API Product"
-          message={`Are you sure you want to delete "${deletingProduct.name}"? This action cannot be undone.`}
+          message={`Are you sure you want to delete "${deletingProduct.name}"? This will permanently remove all specs, versions, diffs, and stored files.
+            This action cannot be undone.`}
           onConfirm={() => handleDelete(deletingProduct)}
           onCancel={() => setDeletingProduct(null)}
         />
