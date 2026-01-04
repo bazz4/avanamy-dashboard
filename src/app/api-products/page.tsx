@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Package, Plus, Search, Edit2, Trash2, Building2, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Package, Plus, Search, Edit2, Trash2, Building2, Upload, CheckCircle, AlertCircle, ChevronRight, FileText, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiProducts, deleteApiProduct, getProviders } from '@/lib/api';
 import type { ApiProduct, Provider } from '@/lib/types';
@@ -87,7 +88,6 @@ export default function ApiProductsPage() {
     } catch (err: any) {
       console.error('Error deleting product:', err);
       
-      // Extract user-friendly error message
       let errorMessage = 'Failed to delete API product';
       if (err?.message) {
         errorMessage = err.message;
@@ -111,6 +111,21 @@ export default function ApiProductsPage() {
     }).format(date);
   }
 
+  // Format relative time
+  function formatRelativeTime(dateString: string | null | undefined): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
+  }
+
   // Group products by provider
   const groupedProducts = filteredProducts.reduce((acc, product) => {
     const providerId = product.provider_id;
@@ -131,7 +146,9 @@ export default function ApiProductsPage() {
   if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-slate-500" role="status">Loading API products...</p>
+        <p className="text-slate-500 dark:text-slate-400" role="status" aria-live="polite">
+          Loading API products...
+        </p>
       </div>
     );
   }
@@ -139,11 +156,11 @@ export default function ApiProductsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        <div className="text-center" role="alert" aria-live="assertive">
           <p className="text-red-600 dark:text-red-400 mb-4">Error: {error}</p>
           <button
             onClick={loadData}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
           >
             Retry
           </button>
@@ -161,23 +178,23 @@ export default function ApiProductsPage() {
             API Products
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Manage API products from your providers
+            Manage API products and their specifications
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
           disabled={providers.length === 0}
-          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50"
+          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
           aria-label="Add new API product"
         >
           <Plus className="h-5 w-5" aria-hidden="true" />
-          Add Product
+          <span>Add Product</span>
         </button>
       </div>
 
       {/* No providers warning */}
       {providers.length === 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6" role="alert">
           <div className="flex items-start gap-4">
             <Building2 className="h-6 w-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
@@ -187,12 +204,12 @@ export default function ApiProductsPage() {
               <p className="text-yellow-700 dark:text-yellow-300 mb-4">
                 You need to create at least one provider before you can add API products.
               </p>
-              <a
+              <Link
                 href="/providers"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
               >
                 Go to Providers
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -203,13 +220,17 @@ export default function ApiProductsPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" aria-hidden="true" />
+            <label htmlFor="product-search" className="sr-only">
+              Search API products
+            </label>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             <input
-              type="text"
+              id="product-search"
+              type="search"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               aria-label="Search API products"
             />
           </div>
@@ -225,7 +246,7 @@ export default function ApiProductsPage() {
                 setSelectedProvider(value);
                 setFilterProviderId(value === 'all' ? null : value);
               }}
-              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               aria-label="Filter API products by provider"
             >
               <option value="all">All Providers</option>
@@ -241,12 +262,12 @@ export default function ApiProductsPage() {
 
       {/* Products Grid - Grouped by Provider */}
       {filteredProducts.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+        <div className="text-center py-16 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl" role="status">
           <Package className="h-16 w-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" aria-hidden="true" />
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
             {searchQuery || selectedProvider !== 'all' ? 'No products found' : 'No API products yet'}
           </h3>
-          <p className="text-slate-500 mb-6">
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
             {searchQuery || selectedProvider !== 'all'
               ? 'Try adjusting your search or filter'
               : 'Get started by adding your first API product'}
@@ -254,7 +275,7 @@ export default function ApiProductsPage() {
           {!searchQuery && selectedProvider === 'all' && providers.length > 0 && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
             >
               <Plus className="h-5 w-5" aria-hidden="true" />
               Add Your First Product
@@ -262,16 +283,19 @@ export default function ApiProductsPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8" role="region" aria-label="API Products grouped by provider">
           {Object.values(groupedProducts).map((group) => (
-            <div key={group.provider.id} className="space-y-4">
+            <section key={group.provider.id} className="space-y-4">
               {/* Provider Header */}
               <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800">
                 <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {group.provider.name}
                 </h2>
-                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full">
+                <span 
+                  className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full"
+                  aria-label={`${group.products.length} ${group.products.length === 1 ? 'product' : 'products'}`}
+                >
                   {group.products.length} {group.products.length === 1 ? 'product' : 'products'}
                 </span>
               </div>
@@ -281,42 +305,58 @@ export default function ApiProductsPage() {
                 {group.products.map((product) => (
                   <article
                     key={product.id}
-                    className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500 dark:hover:border-purple-500 transition-all group"
+                    className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500 dark:hover:border-purple-500 transition-all group focus-within:ring-2 focus-within:ring-purple-500"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Package className="h-6 w-6 text-white" aria-hidden="true" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                          <Package className="h-6 w-6 text-white" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
                             {product.name}
                           </h3>
-                          <p className="text-xs text-slate-500 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {product.slug}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Spec Status Badge */}
+                    {/* Spec Status Badge - Clickable if spec exists */}
                     {product.latest_spec_id ? (
-                      <div className="mb-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                      <Link 
+                        href={`/specs/${product.latest_spec_id}`}
+                        className="block mb-4 p-3 bg-green-50 dark:bg-green-950 hover:bg-green-100 dark:hover:bg-green-900/80 rounded-lg border border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700 transition-all group/spec focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                        aria-label={`View API specification for ${product.name}. Version ${product.latest_spec_version}, ${product.spec_count} ${product.spec_count === 1 ? 'version' : 'versions'} available`}
+                      >
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-green-900 dark:text-green-100">
                               API Spec Available
                             </p>
-                            <p className="text-xs text-green-700 dark:text-green-300">
-                              Version {product.latest_spec_version} • {formatDate(product.latest_spec_uploaded_at)}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300 mt-0.5">
+                              <span>Version {product.latest_spec_version}</span>
+                              <span aria-hidden="true">•</span>
+                              <span>{product.spec_count || 1} {product.spec_count === 1 ? 'version' : 'versions'}</span>
+                              {product.latest_spec_uploaded_at && (
+                                <>
+                                  <span aria-hidden="true">•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" aria-hidden="true" />
+                                    <span>{formatRelativeTime(product.latest_spec_uploaded_at)}</span>
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
+                          <ChevronRight className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 group-hover/spec:translate-x-1 transition-transform" aria-hidden="true" />
                         </div>
-                      </div>
+                      </Link>
                     ) : (
-                      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800" role="status">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" aria-hidden="true" />
                           <div className="flex-1">
@@ -340,11 +380,22 @@ export default function ApiProductsPage() {
 
                     {/* Actions */}
                     <div className="space-y-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                      {/* View Spec Details button - only if spec exists */}
+                      {product.latest_spec_id && (
+                        <Link
+                          href={`/specs/${product.latest_spec_id}`}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                        >
+                          <FileText className="h-4 w-4" aria-hidden="true" />
+                          View Spec Details
+                        </Link>
+                      )}
+                      
                       {/* Upload button - full width */}
                       <button
                         onClick={() => setUploadingProduct(product)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all"
-                        aria-label={`Upload spec for ${product.name}`}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                        aria-label={product.latest_spec_id ? `Update specification for ${product.name}` : `Upload specification for ${product.name}`}
                       >
                         <Upload className="h-4 w-4" aria-hidden="true" />
                         {product.latest_spec_id ? 'Update Spec' : 'Upload Spec'}
@@ -354,7 +405,7 @@ export default function ApiProductsPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setEditingProduct(product)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                           aria-label={`Edit ${product.name}`}
                         >
                           <Edit2 className="h-4 w-4" aria-hidden="true" />
@@ -362,7 +413,7 @@ export default function ApiProductsPage() {
                         </button>
                         <button
                           onClick={() => setDeletingProduct(product)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                           aria-label={`Delete ${product.name}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -373,7 +424,7 @@ export default function ApiProductsPage() {
                   </article>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}

@@ -84,14 +84,16 @@ async function apiPost<T>(path: string, body?: any, init?: RequestInit): Promise
 
 import type {
   ApiSpec,
+  ApiProduct,
   SpecVersion,
   WatchedAPI,
   AlertConfig,
   AlertHistory,
   EndpointHealth,
   EndpointHealthSummary,
+  ProductSpecsSummary,
   WatchedAPIHealthSummary,
-  VersionDiff, // ADD THIS
+  VersionDiff, 
 } from "./types";
 // Add these to your existing src/lib/api.ts file
 
@@ -154,21 +156,22 @@ export function getSpecsForProduct(productId: string): Promise<ApiSpec[]> {
   return apiGet<ApiSpec[]>(`/products/${productId}/specs`);
 }
 
+export async function getSpecDocs(specId: string): Promise<{ markdown: string | null; html: string | null }> {
+  const token = await getClerkToken();
 
-export async function getSpecDocs(specId: string) {
-  // Fetch plain text markdown
-  const markdownRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/docs/${specId}/markdown`, {
+  // Fetch markdown
+  const markdownRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/${specId}/markdown`, {
     headers: {
-      "X-Tenant-ID": TENANT_ID, // or your default tenant
+      'Authorization': `Bearer ${token}`,
     },
   });
 
   const markdown = markdownRes.ok ? await markdownRes.text() : null;
 
-  // Fetch plain HTML
-  const htmlRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/docs/${specId}/html`, {
+  // Fetch HTML
+  const htmlRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/docs/${specId}/html`, {
     headers: {
-      "X-Tenant-ID": TENANT_ID,
+      'Authorization': `Bearer ${token}`,
     },
   });
 
@@ -177,21 +180,36 @@ export async function getSpecDocs(specId: string) {
   return { markdown, html };
 }
 
-
 export function regenerateDocs(specId: string): Promise<unknown> {
   return apiPost(`/api-specs/${specId}/regenerate-docs`);
 }
 
-export function uploadNewSpecVersion(
+export async function uploadNewSpecVersion(
   specId: string,
   file: File,
-  changelog?: string,
-): Promise<unknown> {
+  name: string,
+  version: string
+): Promise<void> {
   const formData = new FormData();
-  formData.append("file", file);
-  if (changelog) formData.append("changelog", changelog);
+  formData.append('file', file);
+  formData.append('name', name);
+  formData.append('version', version);
 
-  return apiPost(`/api-specs/${specId}/upload-new-version`, formData);
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api-specs/${specId}/versions`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${await getClerkToken()}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to upload new version');
+  }
 }
 
 // === Phase 6: Watched APIs ===
@@ -506,22 +524,6 @@ export function getLatestDocumentation(
   return apiGet(`/docs/${specId}/latest?format=${format}`);
 }
 
-// API Product Types & Functions
-export interface ApiProduct {
-  id: string;
-  tenant_id: string;
-  provider_id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string | null;
-  created_by_user_id: string | null;
-  updated_by_user_id: string | null;
-  provider_name: string | null;
-  provider_slug: string | null;
-}
-
 export interface ApiProductCreate {
   name: string;
   slug: string;
@@ -536,9 +538,14 @@ export interface ApiProductUpdate {
   description?: string | null;
 }
 
-export async function getApiProducts(providerId?: string): Promise<ApiProduct[]> {
-  const query = providerId ? `?provider_id=${providerId}` : '';
-  return apiGet<ApiProduct[]>(`/api-products${query}`);
+// Get all products
+export async function getApiProducts(): Promise<ApiProduct[]> {
+  return apiGet<ApiProduct[]>('/api-products');
+}
+
+// Get products by provider
+export async function getApiProductsByProvider(providerId: string): Promise<ApiProduct[]> {
+  return apiGet<ApiProduct[]>(`/api-products?provider_id=${providerId}`);
 }
 
 export async function getApiProduct(productId: string): Promise<ApiProduct> {
@@ -562,8 +569,8 @@ export async function deleteApiProduct(productId: string): Promise<void> {
 
 // API Spec Upload
 export async function uploadApiSpec(
-  productId: string,
   file: File,
+  productId: string,  
   name?: string,
   version?: string
 ): Promise<any> {
@@ -611,4 +618,26 @@ export async function uploadApiSpec(
   }
 
   return res.json();
+}
+
+// Product Specs Summary (for navigation/breadcrumbs)
+export async function getProductSpecsSummary(productId: string): Promise<ProductSpecsSummary> {
+  return apiGet<ProductSpecsSummary>(`/api-products/${productId}/specs/summary`);
+}
+
+// Get all specs for a product
+export async function getProductSpecs(productId: string): Promise<{
+  product: {
+    id: string;
+    name: string;
+    provider_name: string | null;
+  };
+  specs: Array<{
+    id: string;
+    name: string;
+    version: string;
+    created_at: string;
+  }>;
+}> {
+  return apiGet(`/products/${productId}/specs`);
 }

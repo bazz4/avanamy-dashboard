@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Loader2 } from 'lucide-react';
-import { getProviders, getApiProducts, createWatchedAPI } from '@/lib/api';
+import { getProviders, getApiProducts, createWatchedAPI, getApiProductsByProvider } from '@/lib/api';
 import type { Provider, ApiProduct } from '@/lib/types';
 
 interface AddWatchedAPIModalProps {
@@ -72,17 +72,20 @@ export function AddWatchedAPIModal({ isOpen, onClose, onSuccess }: AddWatchedAPI
     }
   };
 
-  const loadProducts = async (providerId: string) => {
-    try {
-      setLoading(true);
-      const data = await getApiProducts(providerId);
-      setProducts(data);
-    } catch (err) {
-      console.error('Failed to load products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadProducts = async (providerId: string) => {
+  try {
+    setLoading(true);
+    // Use the provider-specific function if you made separate ones:
+    const data = await getApiProductsByProvider(providerId);
+    // OR keep using getApiProducts if it accepts optional parameter:
+    // const data = await getApiProducts(providerId);
+    setProducts(data);
+  } catch (err) {
+    console.error('Failed to load products:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const validateForm = () => {
     const newErrors = {

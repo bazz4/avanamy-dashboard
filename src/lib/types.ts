@@ -41,11 +41,27 @@ export interface ApiProduct {
   updated_at: string | null;
   created_by_user_id: string | null;
   updated_by_user_id: string | null;
+  provider_name: string | null;     
+  provider_slug: string | null;   
+  latest_spec_id: string | null;
+  latest_spec_version: string | null;
+  latest_spec_uploaded_at: string | null;
+  spec_count?: number; 
+}
+
+export interface ProductSpecsSummary {
+  product_id: string;
+  product_name: string;
+  product_slug: string;
+  provider_id: string;
   provider_name: string | null;
-  provider_slug: string | null;
-  latest_spec_id?: string | null;
-  latest_spec_version?: string | null;
-  latest_spec_uploaded_at?: string | null;
+  spec_count: number;
+  specs: Array<{
+    id: string;
+    name: string;
+    version: string;
+    created_at: string;
+  }>;
 }
 
 export interface ApiProductCreate {
