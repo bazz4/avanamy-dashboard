@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Plus, GitBranch, Users, Mail, Search, RefreshCw } from 'lucide-react';
+import { Plus, GitBranch, Users, Mail, Search, RefreshCw, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { CodeRepository } from '@/lib/types';
 import { getCodeRepositories, deleteCodeRepository, triggerCodeRepositoryScan } from '@/lib/api';
@@ -15,6 +15,7 @@ export default function CodeRepositoriesPage() {
   const [repositories, setRepositories] = useState<CodeRepository[]>([]);
   const [filteredRepositories, setFilteredRepositories] = useState<CodeRepository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRepo, setEditingRepo] = useState<CodeRepository | null>(null);
@@ -43,6 +44,21 @@ export default function CodeRepositoriesPage() {
     }
   }, [searchQuery, repositories]);
 
+  // Auto-refresh when there are scanning/pending repos
+  useEffect(() => {
+    const hasActiveScans = repositories.some(
+      (repo) => repo.scan_status === 'scanning'
+    );
+
+    if (!hasActiveScans) return;
+
+    const interval = setInterval(() => {
+      refreshRepositories();
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [repositories]);
+
   async function loadRepositories() {
     try {
       setLoading(true);
@@ -54,6 +70,32 @@ export default function CodeRepositoriesPage() {
       toast.error('Failed to load code repositories');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshRepositories() {
+    try {
+      setUpdating(true);
+      const data = await getCodeRepositories();
+      setRepositories(data);
+      // Preserve current search filter
+      if (searchQuery.trim() === '') {
+        setFilteredRepositories(data);
+      } else {
+        const query = searchQuery.toLowerCase();
+        setFilteredRepositories(
+          data.filter(
+            (repo) =>
+              repo.name.toLowerCase().includes(query) ||
+              repo.url.toLowerCase().includes(query) ||
+              repo.owner_team?.toLowerCase().includes(query)
+          )
+        );
+      }
+    } catch (error) {
+      console.log('Failed to refresh code repositories:', error);
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -70,20 +112,25 @@ export default function CodeRepositoriesPage() {
   }
 
   async function handleScan(repo: CodeRepository) {
+    if (!repo.access_token_encrypted) {
+      toast.error('Connect GitHub before scanning');
+      return;
+    }
+
     try {
       await triggerCodeRepositoryScan(repo.id);
-      toast.success('Scan triggered (GitHub integration coming soon)');
-      loadRepositories();
-    } catch (error) {
-      console.log('Failed to trigger scan:', error);
-      toast.error('Failed to trigger scan');
+      toast.success('Scan started');
+      await refreshRepositories();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to start scan');
+      await refreshRepositories();
     }
   }
 
   function getScanStatusBadge(status: string) {
     const styles = {
       pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-      scanning: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      scanning: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse',
       success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     };
@@ -95,6 +142,26 @@ export default function CodeRepositoriesPage() {
     );
   }
 
+  function getScanStatusLabel(status: string) {
+    switch (status) {
+      case 'pending':
+        return 'Ready to scan';
+      case 'scanning':
+        return 'Scanning';
+      case 'success':
+        return 'Scanned';
+      case 'failed':
+        return 'Failed';
+      default:
+        return status;
+    }
+  }
+
+  // Check if auto-updating is active
+  const hasActiveScans = repositories.some(
+    (repo) => repo.scan_status === 'scanning'
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -105,6 +172,20 @@ export default function CodeRepositoriesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Auto-Update Indicator */}
+      {hasActiveScans && (
+        <div className="fixed top-20 left-72 z-50">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg">
+            <RotateCw 
+              className={`h-3 w-3 text-blue-600 dark:text-blue-400 ${updating ? 'animate-spin' : ''}`}
+            />
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              {updating ? 'Updating...' : 'Auto-updating'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -252,7 +333,13 @@ export default function CodeRepositoriesPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                <a
+                {/* Add GitHub connection indicator */}
+                {!repo.access_token_encrypted && (
+                  <div className="flex-1 text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded">
+                    ⚠️ Connect GitHub to scan
+                  </div>
+                )}
+                <a                
                   href={`/code-repositories/${repo.id}`}
                   className="flex-1 px-3 py-2 text-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded transition-colors text-sm"
                 >
@@ -260,10 +347,14 @@ export default function CodeRepositoriesPage() {
                 </a>
                 <button
                   onClick={() => handleScan(repo)}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
-                  title="Trigger scan"
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={repo.access_token_encrypted ? "Trigger scan" : "Connect GitHub first"}
+                  disabled={
+                    repo.scan_status === 'scanning' || 
+                    !repo.access_token_encrypted  // ← Add this
+                  }
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className={`h-4 w-4 ${(repo.scan_status === 'scanning') ? 'animate-spin' : ''}`} />
                 </button>
                 <button
                   onClick={() => setEditingRepo(repo)}

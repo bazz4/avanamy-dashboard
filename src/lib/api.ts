@@ -670,3 +670,12 @@ export async function deleteCodeRepository(id: string): Promise<void> {
 export async function triggerCodeRepositoryScan(id: string): Promise<{ message: string; code_repository_id: string; status: string }> {
   return apiPost(`/code-repositories/${id}/scan`, {});
 }
+
+// GitHub OAuth
+export async function initiateGitHubOAuth(): Promise<{ authorization_url: string; state: string }> {
+  return apiGet('/api/github/authorize');
+}
+
+export async function listGitHubRepositories(encryptedToken: string): Promise<{ repositories: any[] }> {
+  return apiGet(`/api/github/repositories?access_token_encrypted=${encodeURIComponent(encryptedToken)}`);
+}

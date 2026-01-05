@@ -226,6 +226,7 @@ export interface CodeRepository {
   url: string;
   owner_team: string | null;
   owner_email: string | null;
+  access_token_encrypted: string | null;
   scan_status: 'pending' | 'scanning' | 'success' | 'failed';
   last_scanned_at: string | null;
   last_scan_commit_sha: string | null;
@@ -255,6 +256,7 @@ export interface CreateCodeRepositoryRequest {
   url: string;
   owner_team?: string;
   owner_email?: string;
+  access_token_encrypted?: string;
 }
 
 export interface UpdateCodeRepositoryRequest {
