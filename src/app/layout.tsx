@@ -11,7 +11,8 @@ import {
   Bell, 
   Activity, 
   Sun, 
-  Moon 
+  Moon, 
+  History, 
 } from "lucide-react";
 import { AvanamyLogo } from "@/components/AvanamyLogo";
 import { UserMenu } from '@/components/UserMenu';
@@ -96,6 +97,12 @@ export default function RootLayout({
                         >
                           Watched APIs
                         </NavLink>
+                        <NavLink 
+                          href="/health" 
+                          icon={<Activity className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Health
+                        </NavLink>
                       </div>
                     </div>
 
@@ -134,7 +141,7 @@ export default function RootLayout({
                         </NavLink>
                         <NavLink 
                           href="/alert-history" 
-                          icon={<Activity className="h-4 w-4" aria-hidden="true" />}
+                          icon={<History className="h-4 w-4" aria-hidden="true" />}
                         >
                           History
                         </NavLink>
