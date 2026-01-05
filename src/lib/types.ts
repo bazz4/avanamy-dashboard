@@ -217,3 +217,48 @@ export interface VersionDiff {
   summary?: string;
   created_at: string;
 }
+
+// Code Repository Types
+export interface CodeRepository {
+  id: string;
+  tenant_id: string;
+  name: string;
+  url: string;
+  owner_team: string | null;
+  owner_email: string | null;
+  scan_status: 'pending' | 'scanning' | 'success' | 'failed';
+  last_scanned_at: string | null;
+  last_scan_commit_sha: string | null;
+  last_scan_error: string | null;
+  total_files_scanned: number;
+  total_endpoints_found: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EndpointUsage {
+  endpoint_path: string;
+  http_method: string | null;
+  file_path: string;
+  line_number: number;
+  code_context: string | null;
+  confidence: number;
+  detection_method: string;
+}
+
+export interface CodeRepositoryDetail extends CodeRepository {
+  endpoint_usages: EndpointUsage[];
+}
+
+export interface CreateCodeRepositoryRequest {
+  name: string;
+  url: string;
+  owner_team?: string;
+  owner_email?: string;
+}
+
+export interface UpdateCodeRepositoryRequest {
+  name?: string;
+  owner_team?: string;
+  owner_email?: string;
+}

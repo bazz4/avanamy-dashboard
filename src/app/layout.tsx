@@ -13,6 +13,7 @@ import {
   Sun, 
   Moon, 
   History, 
+  Code,
 } from "lucide-react";
 import { AvanamyLogo } from "@/components/AvanamyLogo";
 import { UserMenu } from '@/components/UserMenu';
@@ -123,6 +124,12 @@ export default function RootLayout({
                           icon={<Package className="h-4 w-4" aria-hidden="true" />}
                         >
                           API Products
+                        </NavLink>
+                        <NavLink 
+                          href="/code-repositories" 
+                          icon={<Code className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          Code Repositories
                         </NavLink>
                       </div>
                     </div>

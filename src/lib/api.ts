@@ -94,6 +94,10 @@ import type {
   ProductSpecsSummary,
   WatchedAPIHealthSummary,
   VersionDiff, 
+  CodeRepository,
+  CodeRepositoryDetail,
+  CreateCodeRepositoryRequest,
+  UpdateCodeRepositoryRequest,
 } from "./types";
 // Add these to your existing src/lib/api.ts file
 
@@ -640,4 +644,29 @@ export async function getProductSpecs(productId: string): Promise<{
   }>;
 }> {
   return apiGet(`/products/${productId}/specs`);
+}
+
+// Code Repositories
+export async function getCodeRepositories(): Promise<CodeRepository[]> {
+  return apiGet('/code-repositories');
+}
+
+export async function getCodeRepository(id: string): Promise<CodeRepositoryDetail> {
+  return apiGet(`/code-repositories/${id}`);
+}
+
+export async function createCodeRepository(data: CreateCodeRepositoryRequest): Promise<CodeRepository> {
+  return apiPost('/code-repositories', data);
+}
+
+export async function updateCodeRepository(id: string, data: UpdateCodeRepositoryRequest): Promise<CodeRepository> {
+  return apiPut(`/code-repositories/${id}`, data);
+}
+
+export async function deleteCodeRepository(id: string): Promise<void> {
+  return apiDelete(`/code-repositories/${id}`);
+}
+
+export async function triggerCodeRepositoryScan(id: string): Promise<{ message: string; code_repository_id: string; status: string }> {
+  return apiPost(`/code-repositories/${id}/scan`, {});
 }
