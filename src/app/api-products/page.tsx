@@ -172,8 +172,13 @@ export default function ApiProductsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+            <span>Home</span>
+            <span>&rsaquo;</span>
+            <span className="text-cyan-600 dark:text-cyan-400">API Products</span>
+          </div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             API Products
           </h1>

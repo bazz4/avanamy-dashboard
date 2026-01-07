@@ -94,28 +94,29 @@ export default function AlertConfigsPage() {
           <span>›</span>
           <span className="text-cyan-600 dark:text-cyan-400">Alert Configurations</span>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Alert Configurations</h1>
-        <p className="text-slate-600 dark:text-slate-400">Manage alert rules and notification channels</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Alert Configurations</h1>
+            <p className="text-slate-600 dark:text-slate-400">Manage alert rules and notification channels</p>
+          </div>
+          <div className="flex flex-wrap justify-start md:justify-end gap-4">
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
+            >
+              <Plus className="h-5 w-5" />
+              Add Alert Config
+            </button>
+            <button
+              onClick={loadAlertConfigs}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700"
+            >
+              <RefreshCw className="h-5 w-5" />
+              Refresh
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Actions */}
-      <div className="flex gap-4">
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
-        >
-          <Plus className="h-5 w-5" />
-          Add Alert Config
-        </button>
-        <button
-          onClick={loadAlertConfigs}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700"
-        >
-          <RefreshCw className="h-5 w-5" />
-          Refresh
-        </button>
-      </div>
-
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard

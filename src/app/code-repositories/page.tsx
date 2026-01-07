@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Plus, GitBranch, Users, Mail, Search, RefreshCw, RotateCw } from 'lucide-react';
+import { Plus, GitBranch, Users, Mail, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { CodeRepository } from '@/lib/types';
 import { getCodeRepositories, deleteCodeRepository, triggerCodeRepositoryScan } from '@/lib/api';
@@ -54,7 +54,7 @@ export default function CodeRepositoriesPage() {
 
     const interval = setInterval(() => {
       refreshRepositories();
-    }, 3000); // Poll every 3 seconds
+    }, 30000); // Poll every 3 seconds
 
     return () => clearInterval(interval);
   }, [repositories]);
@@ -172,35 +172,45 @@ export default function CodeRepositoriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Auto-Update Indicator */}
-      {hasActiveScans && (
-        <div className="fixed top-20 left-72 z-50">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg">
-            <RotateCw 
-              className={`h-3 w-3 text-blue-600 dark:text-blue-400 ${updating ? 'animate-spin' : ''}`}
-            />
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-              {updating ? 'Updating...' : 'Auto-updating'}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Code Repositories</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Connect your repositories to detect API endpoint usage
-          </p>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span>Home</span>
+            <span>&rsaquo;</span>
+            <span className="text-cyan-600 dark:text-cyan-400">Code Repositories</span>
+          </div>
+          {hasActiveScans && (
+            <div className="flex items-center gap-2 text-xs">
+              {updating ? (
+                <>
+                  <RefreshCw className="h-3 w-3 text-cyan-600 dark:text-cyan-400 animate-spin" />
+                  <span className="text-cyan-600 dark:text-cyan-400 font-semibold">Updating...</span>
+                </>
+              ) : (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-slate-500">Auto-updating every 30s</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add Repository</span>
-        </button>
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Code Repositories</h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">
+              Connect your repositories to detect API endpoint usage
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Repository</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

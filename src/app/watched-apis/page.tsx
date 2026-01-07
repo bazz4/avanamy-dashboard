@@ -32,7 +32,7 @@ export default function WatchedAPIsPage() {
     // Auto-refresh every 10 seconds (no loading spinner)
     const interval = setInterval(() => {
       loadWatchedAPIs(false);
-    }, 10000);
+    }, 30000);
     
     // Cleanup on unmount
     return () => clearInterval(interval);
@@ -153,34 +153,35 @@ export default function WatchedAPIsPage() {
             ) : (
               <>
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-slate-500">Auto-updating every 10s</span>
+                <span className="text-slate-500">Auto-updating every 30s</span>
               </>
             )}
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Watched APIs</h1>
-        <p className="text-slate-600 dark:text-slate-400">Monitor external APIs for changes and breaking updates</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Watched APIs</h1>
+            <p className="text-slate-600 dark:text-slate-400">Monitor external APIs for changes and breaking updates</p>
+          </div>
+          <div className="flex flex-wrap justify-start md:justify-end gap-4">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
+            >
+              <Plus className="h-5 w-5" />
+              Add Watched API
+            </button>
+            <button
+              onClick={() => loadWatchedAPIs()}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh All'}
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Actions */}
-      <div className="flex gap-4">
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
-        >
-          <Plus className="h-5 w-5" />
-          Add Watched API
-        </button>
-        <button
-          onClick={() => loadWatchedAPIs()}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-all border border-slate-300 dark:border-slate-700 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh All'}
-        </button>
-      </div>
-
       {/* Search Bar */}
       {watchedAPIs.length > 0 && (
         <div className="relative">

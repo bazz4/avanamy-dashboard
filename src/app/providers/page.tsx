@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Building2, Plus, Search, Edit2, Trash2, Globe, ExternalLink, Archive } from 'lucide-react';
 import { toast } from 'sonner';
@@ -136,8 +136,13 @@ export default function ProvidersPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+            <span>Home</span>
+            <span>&rsaquo;</span>
+            <span className="text-cyan-600 dark:text-cyan-400">Providers</span>
+          </div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Providers
           </h1>
@@ -229,16 +234,7 @@ export default function ProvidersPage() {
 
               {/* Website */}
               {provider.website && (
-                <a
-                  href={provider.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-500 mb-4"
-                >
-                  <Globe className="h-4 w-4" aria-hidden="true" />
-                  <span className="truncate">{provider.website}</span>
-                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                </a>
+                <ProviderWebsiteLink website={provider.website} />
               )}
 
               {/* Actions */}
@@ -294,5 +290,36 @@ export default function ProvidersPage() {
         />
       )}
     </div>
+  );
+}
+
+function ProviderWebsiteLink({ website }: { website: string }) {
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const checkTruncation = () => {
+      setIsTruncated(el.scrollWidth > el.clientWidth);
+    };
+
+    checkTruncation();
+    window.addEventListener('resize', checkTruncation);
+    return () => window.removeEventListener('resize', checkTruncation);
+  }, []);
+
+  return (
+    <a
+      href={website}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-500 mb-4 w-full min-w-0"
+    >
+      <Globe className="h-4 w-4" aria-hidden="true" />
+      <span ref={textRef} className="truncate">{website}</span>
+      <ExternalLink className={isTruncated ? 'h-4 w-4' : 'h-3 w-3'} aria-hidden="true" />
+    </a>
   );
 }
