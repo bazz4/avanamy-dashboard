@@ -667,7 +667,18 @@ export async function deleteCodeRepository(id: string): Promise<void> {
   return apiDelete(`/code-repositories/${id}`);
 }
 
-export async function triggerCodeRepositoryScan(id: string): Promise<{ message: string; code_repository_id: string; status: string }> {
+export async function connectGitHubToRepository(
+  id: string,
+  accessTokenEncrypted: string
+): Promise<CodeRepository> {
+  return apiPost(`/code-repositories/${id}/connect-github`, {
+    access_token_encrypted: accessTokenEncrypted,
+  });
+}
+
+export async function triggerCodeRepositoryScan(
+  id: string
+): Promise<{ message: string; code_repository_id: string; status: string }> {
   return apiPost(`/code-repositories/${id}/scan`, {});
 }
 

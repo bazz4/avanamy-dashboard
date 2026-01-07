@@ -2,30 +2,54 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, GitBranch, Users, Mail, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { CodeRepository } from '@/lib/types';
-import { getCodeRepositories, deleteCodeRepository, triggerCodeRepositoryScan } from '@/lib/api';
+import { getCodeRepositories, deleteCodeRepository, triggerCodeRepositoryScan, connectGitHubToRepository } from '@/lib/api';
 import { AddCodeRepositoryModal } from '@/components/AddCodeRepositoryModal';
 import { EditCodeRepositoryModal } from '@/components/EditCodeRepositoryModal';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export default function CodeRepositoriesPage() {
   const { isLoaded } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [repositories, setRepositories] = useState<CodeRepository[]>([]);
   const [filteredRepositories, setFilteredRepositories] = useState<CodeRepository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRepo, setEditingRepo] = useState<CodeRepository | null>(null);
   const [deletingRepo, setDeletingRepo] = useState<CodeRepository | null>(null);
+  const [githubToken, setGithubToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('github_token');
+  });
+  const [scanRequested, setScanRequested] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (isLoaded) {
       loadRepositories();
     }
   }, [isLoaded]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const token = sessionStorage.getItem('github_token');
+    setGithubToken(token);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const connected = searchParams.get('github_connected');
+    if (connected === 'true') {
+      setShowAddModal(true);
+      router.replace('/code-repositories');
+    }
+  }, [isLoaded, searchParams, router]);
 
   useEffect(() => {
     // Filter repositories based on search
@@ -47,7 +71,7 @@ export default function CodeRepositoriesPage() {
   // Auto-refresh when there are scanning/pending repos
   useEffect(() => {
     const hasActiveScans = repositories.some(
-      (repo) => repo.scan_status === 'scanning'
+      (repo) => repo.scan_status === 'scanning' || repo.scan_status === 'pending'
     );
 
     if (!hasActiveScans) return;
@@ -59,12 +83,15 @@ export default function CodeRepositoriesPage() {
     return () => clearInterval(interval);
   }, [repositories]);
 
-  async function loadRepositories() {
+  async function loadRepositories(showLoading = true) {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const data = await getCodeRepositories();
       setRepositories(data);
       setFilteredRepositories(data);
+      setHasLoadedOnce(true);
     } catch (error) {
       console.log('Failed to load code repositories:', error);
       toast.error('Failed to load code repositories');
@@ -112,24 +139,36 @@ export default function CodeRepositoriesPage() {
   }
 
   async function handleScan(repo: CodeRepository) {
-    if (!repo.access_token_encrypted) {
-      toast.error('Connect GitHub before scanning');
-      return;
-    }
-
     try {
+      if (!repo.access_token_encrypted && githubToken) {
+        await connectGitHubToRepository(repo.id, githubToken);
+      }
+      setScanRequested((prev) => new Set(prev).add(repo.id));
+      setRepositories((prev) =>
+        prev.map((item) =>
+          item.id === repo.id ? { ...item, scan_status: 'pending' } : item
+        )
+      );
       await triggerCodeRepositoryScan(repo.id);
-      toast.success('Scan started');
+      toast.success('Scan started', { id: `scan-${repo.id}` });
       await refreshRepositories();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to start scan');
       await refreshRepositories();
+    } finally {
+      setScanRequested((prev) => {
+        const next = new Set(prev);
+        next.delete(repo.id);
+        return next;
+      });
     }
   }
 
-  function getScanStatusBadge(status: string) {
+  function getScanStatusBadge(status: string, hasScanRequested: boolean) {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      pending: hasScanRequested
+        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse'
+        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
       scanning: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse',
       success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
@@ -137,15 +176,15 @@ export default function CodeRepositoriesPage() {
 
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || styles.pending}`}>
-        {status}
+        {getScanStatusLabel(status, hasScanRequested)}
       </span>
     );
   }
 
-  function getScanStatusLabel(status: string) {
+  function getScanStatusLabel(status: string, hasScanRequested: boolean) {
     switch (status) {
       case 'pending':
-        return 'Ready to scan';
+        return hasScanRequested ? 'Scanning' : 'Ready to scan';
       case 'scanning':
         return 'Scanning';
       case 'success':
@@ -159,10 +198,10 @@ export default function CodeRepositoriesPage() {
 
   // Check if auto-updating is active
   const hasActiveScans = repositories.some(
-    (repo) => repo.scan_status === 'scanning'
+    (repo) => repo.scan_status === 'scanning' || repo.scan_status === 'pending'
   );
 
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-slate-600 dark:text-slate-400">Loading code repositories...</div>
@@ -268,18 +307,20 @@ export default function CodeRepositoriesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredRepositories.map((repo) => (
-            <div
-              key={repo.id}
-              className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg transition-shadow"
-            >
+          {filteredRepositories.map((repo) => {
+            const hasScanRequested = scanRequested.has(repo.id);
+            return (
+              <div
+                key={repo.id}
+                className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg transition-shadow"
+              >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                       {repo.name}
                     </h3>
-                    {getScanStatusBadge(repo.scan_status)}
+                    {getScanStatusBadge(repo.scan_status, hasScanRequested)}
                   </div>
                   <a
                     href={repo.url}
@@ -343,13 +384,7 @@ export default function CodeRepositoriesPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {/* Add GitHub connection indicator */}
-                {!repo.access_token_encrypted && (
-                  <div className="flex-1 text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded">
-                    ⚠️ Connect GitHub to scan
-                  </div>
-                )}
-                <a                
+                <a
                   href={`/code-repositories/${repo.id}`}
                   className="flex-1 px-3 py-2 text-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded transition-colors text-sm"
                 >
@@ -358,13 +393,12 @@ export default function CodeRepositoriesPage() {
                 <button
                   onClick={() => handleScan(repo)}
                   className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={repo.access_token_encrypted ? "Trigger scan" : "Connect GitHub first"}
-                  disabled={
-                    repo.scan_status === 'scanning' || 
-                    !repo.access_token_encrypted  // ← Add this
-                  }
+                  title="Trigger scan"
+                  disabled={repo.scan_status === 'scanning' || hasScanRequested}
                 >
-                  <RefreshCw className={`h-4 w-4 ${(repo.scan_status === 'scanning') ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`h-4 w-4 ${(repo.scan_status === 'scanning' || hasScanRequested) ? 'animate-spin' : ''}`}
+                  />
                 </button>
                 <button
                   onClick={() => setEditingRepo(repo)}
@@ -379,8 +413,9 @@ export default function CodeRepositoriesPage() {
                   Delete
                 </button>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -388,9 +423,17 @@ export default function CodeRepositoriesPage() {
       {showAddModal && (
         <AddCodeRepositoryModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
+          onSuccess={(repo) => {
             setShowAddModal(false);
-            loadRepositories();
+            if (repo) {
+              setRepositories((prev) => {
+                if (prev.some((item) => item.id === repo.id)) {
+                  return prev;
+                }
+                return [repo, ...prev];
+              });
+            }
+            loadRepositories(false);
           }}
         />
       )}

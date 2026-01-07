@@ -3,16 +3,21 @@
 import { useState, useEffect } from 'react';
 import { X, Github } from 'lucide-react';
 import { toast } from 'sonner';
-import { createCodeRepository, initiateGitHubOAuth, listGitHubRepositories, triggerCodeRepositoryScan  } from '@/lib/api';
-import { CreateCodeRepositoryRequest } from '@/lib/types';
+import { connectGitHubToRepository, createCodeRepository, initiateGitHubOAuth, listGitHubRepositories, triggerCodeRepositoryScan  } from '@/lib/api';
+import { CodeRepository, CreateCodeRepositoryRequest } from '@/lib/types';
 
 interface AddCodeRepositoryModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (repo?: CodeRepository) => void;
 }
 
 export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepositoryModalProps) {
-  const [mode, setMode] = useState<'select' | 'manual' | 'github-repos'>('select');
+  const [mode, setMode] = useState<'select' | 'manual' | 'github-repos'>(() => {
+    if (typeof window === 'undefined') return 'select';
+    const token = sessionStorage.getItem('github_token');
+    const user = sessionStorage.getItem('github_user');
+    return token && user ? 'github-repos' : 'select';
+  });
   const [formData, setFormData] = useState<CreateCodeRepositoryRequest>({
     name: '',
     url: '',
@@ -21,9 +26,17 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [githubToken, setGithubToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('github_token');
+  });
   const [githubRepos, setGithubRepos] = useState<any[]>([]);
-  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [loadingRepos, setLoadingRepos] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const token = sessionStorage.getItem('github_token');
+    const user = sessionStorage.getItem('github_user');
+    return Boolean(token && user);
+  });
 
   useEffect(() => {
     // Check if we just connected GitHub
@@ -32,6 +45,7 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
     
     if (token && user) {
       setGithubToken(token);
+      setMode('github-repos');
       loadGitHubRepositories(token);
     }
   }, []);
@@ -117,24 +131,20 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
         data.owner_email = formData.owner_email.trim();
       }
 
-      // Add GitHub token if available
-      if (githubToken) {
-        data.access_token_encrypted = githubToken;
-      }
-
       const repo = await createCodeRepository(data);
+      toast.success('Repository added. Trigger a scan when you are ready.');
+      onSuccess(repo);
 
-      // Auto-scan ONLY if GitHub OAuth was used
-      if (repo.access_token_encrypted) {
-        await triggerCodeRepositoryScan(repo.id);
+      if (githubToken) {
+        void (async () => {
+          try {
+            await connectGitHubToRepository(repo.id, githubToken);
+          } catch (error: any) {
+            const errorMessage = error?.message || 'Failed to connect GitHub';
+            toast.error(errorMessage);
+          }
+        })();
       }
-      
-      // Clear GitHub session data
-      sessionStorage.removeItem('github_token');
-      sessionStorage.removeItem('github_user');
-      
-      toast.success('Code repository added successfully');
-      onSuccess();
     } catch (error: any) {
       console.log('Failed to create code repository:', error);
       const errorMessage = error?.message || 'Failed to create code repository';
