@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
-import { ArrowLeft, FileText, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
-import { getSpecDocs } from '@/lib/api';
+import { ArrowLeft, FileText, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { getSpecDocs, getSpecVersions } from '@/lib/api';
+import type { SpecVersion } from '@/lib/types';
 
 export default function SpecDocsPage() {
   const { isLoaded } = useAuth();
@@ -17,6 +18,29 @@ export default function SpecDocsPage() {
   const [error, setError] = useState<string | null>(null);
   const [markdownCollapsed, setMarkdownCollapsed] = useState(false);
   const [htmlCollapsed, setHtmlCollapsed] = useState(false);
+  const [latestVersion, setLatestVersion] = useState<SpecVersion | null>(null);
+
+  const normalizedHtml = useMemo(() => {
+    if (!docs?.html) return null;
+    return normalizeHtmlForPreview(docs.html, {
+      apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+      specId,
+    });
+  }, [docs?.html, specId]);
+
+  const htmlPreviewUrl = useMemo(() => {
+    if (!latestVersion?.version) return null;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!apiBaseUrl) return null;
+    return `${apiBaseUrl}/docs/${specId}/versions/${latestVersion.version}?format=html&raw=true`;
+  }, [latestVersion?.version, specId]);
+
+  const markdownPreviewUrl = useMemo(() => {
+    if (!latestVersion?.version) return null;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!apiBaseUrl) return null;
+    return `${apiBaseUrl}/docs/${specId}/versions/${latestVersion.version}?format=markdown&raw=true`;
+  }, [latestVersion?.version, specId]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -27,8 +51,16 @@ export default function SpecDocsPage() {
     try {
       setLoading(true);
       setError(null);
-      const docsData = await getSpecDocs(specId);
+      const [docsData, versions] = await Promise.all([
+        getSpecDocs(specId),
+        getSpecVersions(specId).catch(() => [] as SpecVersion[]),
+      ]);
       setDocs(docsData);
+      const latest = versions.reduce<SpecVersion | null>((current, version) => {
+        if (!current) return version;
+        return version.version > current.version ? version : current;
+      }, null);
+      setLatestVersion(latest);
     } catch (err) {
       console.error('Error loading documentation:', err);
       setError(err instanceof Error ? err.message : 'Failed to load documentation');
@@ -111,19 +143,44 @@ export default function SpecDocsPage() {
       <div className="space-y-6">
         {/* Markdown Section */}
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setMarkdownCollapsed(!markdownCollapsed)}
-            className="w-full p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-          >
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              Markdown Source
-            </h2>
-            {markdownCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-slate-500" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-slate-500" />
-            )}
-          </button>
+          <div className="w-full p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div className="flex items-center gap-3">              
+              <button
+                onClick={() => setMarkdownCollapsed(!markdownCollapsed)}
+                className="text-left"
+                type="button"
+              >
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                  Markdown Source
+                </h2>
+              </button>
+              {markdownPreviewUrl ? (
+                <a
+                  href={markdownPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                  aria-label="Open markdown in new window"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMarkdownCollapsed(!markdownCollapsed)}
+                className="p-2 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                aria-label={markdownCollapsed ? 'Expand markdown source' : 'Collapse markdown source'}
+                type="button"
+              >
+                {markdownCollapsed ? (
+                  <ChevronDown className="h-5 w-5" />
+                ) : (
+                  <ChevronUp className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
 
           {!markdownCollapsed && (
             <div className="p-6">
@@ -145,26 +202,51 @@ export default function SpecDocsPage() {
 
         {/* HTML Preview Section */}
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setHtmlCollapsed(!htmlCollapsed)}
-            className="w-full p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-          >
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              HTML Preview
-            </h2>
-            {htmlCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-slate-500" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-slate-500" />
-            )}
-          </button>
+          <div className="w-full p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setHtmlCollapsed(!htmlCollapsed)}
+                className="text-left"
+                type="button"
+              >
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                  HTML Preview
+                </h2>
+              </button>
+              {htmlPreviewUrl ? (
+                <a
+                  href={htmlPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                  aria-label="Open HTML preview in new window"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setHtmlCollapsed(!htmlCollapsed)}
+                className="p-2 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                aria-label={htmlCollapsed ? 'Expand HTML preview' : 'Collapse HTML preview'}
+                type="button"
+              >
+                {htmlCollapsed ? (
+                  <ChevronDown className="h-5 w-5" />
+                ) : (
+                  <ChevronUp className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
 
           {!htmlCollapsed && (
             <div className="p-6">
               {docs?.html ? (
                 <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
                   <iframe
-                    srcDoc={docs.html}
+                    srcDoc={normalizedHtml ?? docs.html}
                     className="w-full min-h-[600px] border-0"
                     sandbox="allow-same-origin"
                     title="HTML Documentation Preview"
@@ -184,4 +266,60 @@ export default function SpecDocsPage() {
       </div>
     </div>
   );
+}
+
+function normalizeHtmlForPreview(
+  rawHtml: string,
+  {
+    apiBaseUrl,
+    specId,
+  }: {
+    apiBaseUrl?: string;
+    specId: string;
+  }
+) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, 'text/html');
+    const anchors = Array.from(doc.querySelectorAll('a[href]'));
+    const docsPathPrefix = `/docs/${specId}`;
+
+    anchors.forEach((anchor) => {
+      const href = anchor.getAttribute('href') || '';
+      if (!href) return;
+
+      if (href.startsWith('#')) {
+        anchor.removeAttribute('target');
+        return;
+      }
+
+      const hashIndex = href.indexOf('#');
+      if (hashIndex === -1) return;
+
+      const hash = href.slice(hashIndex + 1);
+      if (!hash) return;
+
+      try {
+        if (href.startsWith('/docs/')) {
+          anchor.setAttribute('href', `#${hash}`);
+          anchor.removeAttribute('target');
+          return;
+        }
+
+        const baseForParsing = apiBaseUrl || window.location.href;
+        const url = new URL(href, baseForParsing);
+        const isDocsLink = url.pathname.startsWith(docsPathPrefix);
+        if (isDocsLink) {
+          anchor.setAttribute('href', `#${hash}`);
+          anchor.removeAttribute('target');
+        }
+      } catch {
+        // Ignore malformed URLs.
+      }
+    });
+
+    return doc.documentElement.outerHTML;
+  } catch {
+    return rawHtml;
+  }
 }
