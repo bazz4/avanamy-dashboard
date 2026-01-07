@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { ArrowLeft, FileText, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
-import { getSpecDocs, getSpecVersions } from '@/lib/api';
+import { getSpecDocs, getSpecVersions, getVersionSchema } from '@/lib/api';
 import type { SpecVersion } from '@/lib/types';
 
 export default function SpecDocsPage() {
@@ -19,6 +19,8 @@ export default function SpecDocsPage() {
   const [markdownCollapsed, setMarkdownCollapsed] = useState(false);
   const [htmlCollapsed, setHtmlCollapsed] = useState(false);
   const [latestVersion, setLatestVersion] = useState<SpecVersion | null>(null);
+  const [rawSpec, setRawSpec] = useState<string | null>(null);
+  const [rawSpecCollapsed, setRawSpecCollapsed] = useState(false);
 
   const normalizedHtml = useMemo(() => {
     if (!docs?.html) return null;
@@ -42,6 +44,11 @@ export default function SpecDocsPage() {
     return `${apiBaseUrl}/docs/${specId}/versions/${latestVersion.version}?format=markdown&raw=true`;
   }, [latestVersion?.version, specId]);
 
+  const rawSpecTitle = useMemo(() => {
+    if (!latestVersion?.version) return 'Open API Spec';
+    return `Open API Spec (v${latestVersion.version})`;
+  }, [latestVersion?.version]);
+
   useEffect(() => {
     if (!isLoaded) return;
     loadData();
@@ -61,6 +68,17 @@ export default function SpecDocsPage() {
         return version.version > current.version ? version : current;
       }, null);
       setLatestVersion(latest);
+      if (latest?.version) {
+        try {
+          const schemaData = await getVersionSchema(specId, latest.version);
+          setRawSpec(JSON.stringify(schemaData.schema, null, 2));
+        } catch (schemaErr) {
+          console.error('Failed to load raw spec:', schemaErr);
+          setRawSpec(null);
+        }
+      } else {
+        setRawSpec(null);
+      }
     } catch (err) {
       console.error('Error loading documentation:', err);
       setError(err instanceof Error ? err.message : 'Failed to load documentation');
@@ -263,6 +281,63 @@ export default function SpecDocsPage() {
             </div>
           )}
         </div>
+
+        {/* OpenAPI Spec Section */}
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <div className="w-full p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setRawSpecCollapsed(!rawSpecCollapsed)}
+                className="text-left"
+                type="button"
+              >
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                  {rawSpecTitle}
+                </h2>
+              </button>
+              <button
+                onClick={() => openRawSpecInNewWindow(rawSpec)}
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                aria-label="Open raw OpenAPI spec"
+                type="button"
+                disabled={!rawSpec}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setRawSpecCollapsed(!rawSpecCollapsed)}
+                className="p-2 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                aria-label={rawSpecCollapsed ? 'Expand Open API spec' : 'Collapse Open API spec'}
+                type="button"
+              >
+                {rawSpecCollapsed ? (
+                  <ChevronDown className="h-5 w-5" />
+                ) : (
+                  <ChevronUp className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {!rawSpecCollapsed && (
+            <div className="p-6">
+              {rawSpec ? (
+                <pre className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/50 p-4 rounded border border-slate-200 dark:border-slate-700 overflow-x-auto max-h-[600px] overflow-y-auto font-mono">
+                  {rawSpec}
+                </pre>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300 dark:text-slate-700" />
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    No OpenAPI specification available.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -322,4 +397,12 @@ function normalizeHtmlForPreview(
   } catch {
     return rawHtml;
   }
+}
+
+function openRawSpecInNewWindow(rawSpec: string | null) {
+  if (!rawSpec) return;
+  const blob = new Blob([rawSpec], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
