@@ -38,7 +38,16 @@ async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
     } else {
       console.warn(`GET ${path} returned ${res.status}`, text);
     }
-    throw new Error(`API GET ${path} failed: ${res.status}`);
+    let errorMessage = `API GET ${path} failed: ${res.status}`;
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // Keep default message on parse failure.
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json() as Promise<T>;
@@ -682,11 +691,11 @@ export async function triggerCodeRepositoryScan(
   return apiPost(`/code-repositories/${id}/scan`, {});
 }
 
-// GitHub OAuth
-export async function initiateGitHubOAuth(): Promise<{ authorization_url: string; state: string }> {
-  return apiGet('/api/github/authorize');
+// GitHub App Installation
+export async function initiateGitHubApp(): Promise<{ authorization_url: string; state: string }> {
+  return apiGet('/api/github/authorize');  // ← Add /api
 }
 
-export async function listGitHubRepositories(encryptedToken: string): Promise<{ repositories: any[] }> {
-  return apiGet(`/api/github/repositories?access_token_encrypted=${encodeURIComponent(encryptedToken)}`);
+export async function listGitHubRepositories(installationId: number): Promise<{ repositories: any[] }> {
+  return apiGet(`/api/github/repositories?installation_id=${installationId}`);  // ← Add /api
 }

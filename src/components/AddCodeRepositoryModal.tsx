@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Github } from 'lucide-react';
 import { toast } from 'sonner';
-import { connectGitHubToRepository, createCodeRepository, initiateGitHubOAuth, listGitHubRepositories, triggerCodeRepositoryScan  } from '@/lib/api';
+import { createCodeRepository, initiateGitHubApp, listGitHubRepositories } from '@/lib/api';
 import { CodeRepository, CreateCodeRepositoryRequest } from '@/lib/types';
 
 interface AddCodeRepositoryModalProps {
@@ -15,8 +15,8 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
   const [mode, setMode] = useState<'select' | 'manual' | 'github-repos'>(() => {
     if (typeof window === 'undefined') return 'select';
     const token = sessionStorage.getItem('github_token');
-    const user = sessionStorage.getItem('github_user');
-    return token && user ? 'github-repos' : 'select';
+    const installation = sessionStorage.getItem('github_installation_id');
+    return token && installation ? 'github-repos' : 'select';
   });
   const [formData, setFormData] = useState<CreateCodeRepositoryRequest>({
     name: '',
@@ -30,41 +30,48 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
     if (typeof window === 'undefined') return null;
     return sessionStorage.getItem('github_token');
   });
+  const [installationId, setInstallationId] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const installation = sessionStorage.getItem('github_installation_id');
+    return installation ? parseInt(installation, 10) : null;
+  });
   const [githubRepos, setGithubRepos] = useState<any[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(() => {
     if (typeof window === 'undefined') return false;
     const token = sessionStorage.getItem('github_token');
-    const user = sessionStorage.getItem('github_user');
-    return Boolean(token && user);
+    const installation = sessionStorage.getItem('github_installation_id');
+    return Boolean(token && installation);
   });
 
   useEffect(() => {
     // Check if we just connected GitHub
     const token = sessionStorage.getItem('github_token');
-    const user = sessionStorage.getItem('github_user');
+    const installation = sessionStorage.getItem('github_installation_id');
     
-    if (token && user) {
+    if (token && installation) {
       setGithubToken(token);
+      const instId = parseInt(installation, 10);
+      setInstallationId(instId);
       setMode('github-repos');
-      loadGitHubRepositories(token);
+      loadGitHubRepositories(instId);
     }
   }, []);
 
   async function handleGitHubConnect() {
     try {
-      const { authorization_url } = await initiateGitHubOAuth();
-      // Redirect to GitHub OAuth
+      const { authorization_url } = await initiateGitHubApp();
+      // Redirect to GitHub App installation
       window.location.href = authorization_url;
     } catch (error: any) {
-      console.log('Failed to initiate GitHub OAuth:', error);
+      console.log('Failed to initiate GitHub App installation:', error);
       toast.error('Failed to connect to GitHub');
     }
   }
 
-  async function loadGitHubRepositories(token: string) {
+  async function loadGitHubRepositories(instId: number) {
     try {
       setLoadingRepos(true);
-      const { repositories } = await listGitHubRepositories(token);
+      const { repositories } = await listGitHubRepositories(instId);
       setGithubRepos(repositories);
       setMode('github-repos');
     } catch (error) {
@@ -118,7 +125,7 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
       setSubmitting(true);
 
       // Prepare data
-      const data: any = {
+      const data: CreateCodeRepositoryRequest = {
         name: formData.name.trim(),
         url: formData.url.trim(),
       };
@@ -131,20 +138,18 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
         data.owner_email = formData.owner_email.trim();
       }
 
-      const repo = await createCodeRepository(data);
-      toast.success('Repository added. Trigger a scan when you are ready.');
-      onSuccess(repo);
-
+      // Add GitHub App data if available
       if (githubToken) {
-        void (async () => {
-          try {
-            await connectGitHubToRepository(repo.id, githubToken);
-          } catch (error: any) {
-            const errorMessage = error?.message || 'Failed to connect GitHub';
-            toast.error(errorMessage);
-          }
-        })();
+        data.access_token_encrypted = githubToken;
       }
+
+      if (installationId) {
+        data.installation_id = installationId;
+      }
+
+      const repo = await createCodeRepository(data);
+      toast.success('Code repository added successfully');
+      onSuccess(repo);
     } catch (error: any) {
       console.log('Failed to create code repository:', error);
       const errorMessage = error?.message || 'Failed to create code repository';
@@ -177,7 +182,7 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
               How would you like to add your repository?
             </p>
 
-            {/* GitHub OAuth Option */}
+            {/* GitHub App Installation Option */}
             <button
               onClick={handleGitHubConnect}
               className="w-full p-6 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 transition-colors text-left"
@@ -188,10 +193,10 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-                    Connect via GitHub
+                    Install GitHub App
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Authenticate with GitHub to select repositories and enable automatic scanning.
+                    Install Avanamy on your GitHub account to access private repositories and enable automatic scanning.
                   </p>
                 </div>
               </div>
@@ -213,7 +218,7 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
                     Enter Manually
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Add repository details manually. Scanning will require GitHub OAuth later.
+                    Add repository details manually. Scanning will require GitHub App installation later.
                   </p>
                 </div>
               </div>
@@ -242,124 +247,177 @@ export function AddCodeRepositoryModal({ onClose, onSuccess }: AddCodeRepository
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {githubRepos.map((repo) => (
-                    <button
-                      key={repo.full_name}
-                      onClick={() => selectGitHubRepo(repo)}
-                      className="w-full p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 transition-colors text-left"
+                {githubRepos.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600 dark:text-slate-400 mb-4">
+                      No repositories found. Make sure Avanamy is installed on your repositories.
+                    </p>
+                    <a
+                      href="https://github.com/settings/installations"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-600 hover:underline"
                     >
-                      <div className="flex items-center gap-3">
-                        <Github className="h-5 w-5 text-slate-400" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-900 dark:text-white truncate">
-                            {repo.name}
+                      Manage installations →
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {githubRepos.map((repo) => (
+                      <button
+                        key={repo.full_name}
+                        onClick={() => selectGitHubRepo(repo)}
+                        className="w-full p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-purple-500 dark:hover:border-purple-500 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Github className="h-5 w-5 text-slate-400" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-slate-900 dark:text-white truncate">
+                              {repo.name}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {repo.full_name}
+                            </div>
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                            {repo.full_name}
-                          </div>
+                          {repo.private && (
+                            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">
+                              Private
+                            </span>
+                          )}
                         </div>
-                        {repo.private && (
-                          <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">
-                            Private
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
         )}
 
-       {mode === 'manual' && (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {mode === 'manual' && (
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="p-6 space-y-4">
+              {/* Show GitHub connected banner if installation exists */}
+              {installationId && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <p className="text-sm text-green-800 dark:text-green-300">
+                    ✓ GitHub App installed! This repository will be automatically scanned.
+                  </p>
+                </div>
+              )}
 
-            {!githubToken && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                  ⚠️ <strong>Note:</strong> This repository cannot be scanned without GitHub OAuth.
-                  <button
-                    type="button"
-                    onClick={() => setMode('select')}
-                    className="ml-1 underline hover:no-underline"
-                  >
-                    Connect GitHub instead
-                  </button>
-                </p>
+              {/* Warning if no GitHub App */}
+              {!installationId && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                    ⚠️ <strong>Note:</strong> This repository cannot be scanned without GitHub App installation.{' '}
+                    <button
+                      type="button"
+                      onClick={() => setMode('select')}
+                      className="underline hover:no-underline"
+                    >
+                      Install GitHub App
+                    </button>
+                  </p>
+                </div>
+              )}
+
+              {/* Repository Name */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Repository Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., payments-service"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-slate-900 dark:text-white ${
+                    errors.name
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                  }`}
+                />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+                )}
               </div>
-            )}
 
-            {/* Repository Name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Repository Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
-            </div>
+              {/* Repository URL */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Repository URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="https://github.com/yourorg/yourrepo"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-slate-900 dark:text-white ${
+                    errors.url
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                  }`}
+                />
+                {errors.url && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.url}</p>
+                )}
+              </div>
 
-            {/* Repository URL */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Repository URL <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              {errors.url && <p className="text-sm text-red-600">{errors.url}</p>}
-            </div>
+              {/* Owner Team */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Owner Team (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.owner_team}
+                  onChange={(e) => setFormData({ ...formData, owner_team: e.target.value })}
+                  placeholder="e.g., Payments Team"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
 
-            {/* Owner Team */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Owner Team (Optional)
-              </label>
-              <input
-                type="text"
-                value={formData.owner_team}
-                onChange={(e) => setFormData({ ...formData, owner_team: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-
-            {/* Owner Email */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Owner Email (Optional)
-              </label>
-              <input
-                type="email"
-                value={formData.owner_email}
-                onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              {errors.owner_email && <p className="text-sm text-red-600">{errors.owner_email}</p>}
+              {/* Owner Email */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Owner Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.owner_email}
+                  onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
+                  placeholder="team@example.com"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-slate-900 dark:text-white ${
+                    errors.owner_email
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                  }`}
+                />
+                {errors.owner_email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.owner_email}</p>
+                )}
+              </div>
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <button type="button" onClick={onClose} className="px-4 py-2">
-                Cancel
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => mode === 'manual' && githubRepos.length > 0 ? setMode('github-repos') : onClose()}
+                className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                disabled={submitting}
+              >
+                {mode === 'manual' && githubRepos.length > 0 ? 'Back' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-purple-600 text-white rounded"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Adding...' : 'Add Repository'}
               </button>
             </div>
-
           </form>
         )}
       </div>

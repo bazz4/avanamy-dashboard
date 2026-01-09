@@ -257,6 +257,7 @@ export interface CreateCodeRepositoryRequest {
   owner_team?: string;
   owner_email?: string;
   access_token_encrypted?: string;
+  installation_id?: number;  
 }
 
 export interface UpdateCodeRepositoryRequest {

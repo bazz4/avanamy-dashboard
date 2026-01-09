@@ -46,8 +46,9 @@ export default function GitHubCallbackPage() {
 
       const data = await response.json();
 
-      // Store encrypted token and user info in sessionStorage
+      // Store encrypted token, installation ID, and user info in sessionStorage
       sessionStorage.setItem('github_token', data.access_token_encrypted);
+      sessionStorage.setItem('github_installation_id', data.installation_id.toString());
       sessionStorage.setItem('github_user', JSON.stringify(data.user_info));
 
       setStatus('success');

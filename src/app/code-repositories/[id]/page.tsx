@@ -7,6 +7,8 @@ import { ArrowLeft, GitBranch, Users, Mail, Code, AlertCircle } from 'lucide-rea
 import { toast } from 'sonner';
 import { CodeRepositoryDetail } from '@/lib/types';
 import { getCodeRepository } from '@/lib/api';
+import { ConfidenceBadge } from '@/components/ConfidenceBadge';
+import { ConfidenceHelpSection } from '@/components/ConfidenceHelpSection';
 
 export default function CodeRepositoryDetailPage() {
   const { isLoaded } = useAuth();
@@ -120,6 +122,9 @@ export default function CodeRepositoryDetailPage() {
         </div>
       </div>
 
+      { /* Confidence Help Section */}
+      <ConfidenceHelpSection />
+
       {/* Owner Info */}
       {(repository.owner_team || repository.owner_email) && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
@@ -212,18 +217,10 @@ export default function CodeRepositoryDetailPage() {
                           <div className="font-mono text-sm text-slate-900 dark:text-white">
                             {usage.file_path}:{usage.line_number}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {usage.detection_method}
-                            </span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              usage.confidence >= 0.9 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                              usage.confidence >= 0.7 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            }`}>
-                              {Math.round(usage.confidence * 100)}% confidence
-                            </span>
-                          </div>
+                          <ConfidenceBadge 
+                            confidence={usage.confidence} 
+                            detectionMethod={usage.detection_method}
+                          />
                         </div>
                         {usage.code_context && (
                           <pre className="text-xs text-slate-600 dark:text-slate-400 overflow-x-auto">

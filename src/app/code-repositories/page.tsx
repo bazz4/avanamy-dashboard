@@ -68,19 +68,33 @@ export default function CodeRepositoriesPage() {
     }
   }, [searchQuery, repositories]);
 
-  // Auto-refresh when there are scanning/pending repos
-  useEffect(() => {
-    const hasActiveScans = repositories.some(
-      (repo) => repo.scan_status === 'scanning' || repo.scan_status === 'pending'
-    );
+  const hasActiveScans = repositories.some(
+    (repo) => repo.scan_status === 'scanning'
+  ) || scanRequested.size > 0;
 
+  // Auto-refresh while scans are active.
+  useEffect(() => {
     if (!hasActiveScans) return;
 
     const interval = setInterval(() => {
       refreshRepositories();
-    }, 30000); // Poll every 3 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
+  }, [hasActiveScans]);
+
+  useEffect(() => {
+    setScanRequested((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        const repo = repositories.find((item) => item.id === id);
+        if (repo && (repo.scan_status === 'pending' || repo.scan_status === 'scanning')) {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   }, [repositories]);
 
   async function loadRepositories(showLoading = true) {
@@ -154,13 +168,17 @@ export default function CodeRepositoriesPage() {
       await refreshRepositories();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to start scan');
-      await refreshRepositories();
-    } finally {
       setScanRequested((prev) => {
         const next = new Set(prev);
         next.delete(repo.id);
         return next;
       });
+      setRepositories((prev) =>
+        prev.map((item) =>
+          item.id === repo.id ? { ...item, scan_status: repo.scan_status } : item
+        )
+      );
+      await refreshRepositories();
     }
   }
 
@@ -197,9 +215,7 @@ export default function CodeRepositoriesPage() {
   }
 
   // Check if auto-updating is active
-  const hasActiveScans = repositories.some(
-    (repo) => repo.scan_status === 'scanning' || repo.scan_status === 'pending'
-  );
+  const isAutoUpdating = hasActiveScans;
 
   if (loading && !hasLoadedOnce) {
     return (
@@ -219,7 +235,7 @@ export default function CodeRepositoriesPage() {
             <span>&rsaquo;</span>
             <span className="text-cyan-600 dark:text-cyan-400">Code Repositories</span>
           </div>
-          {hasActiveScans && (
+          {isAutoUpdating && (
             <div className="flex items-center gap-2 text-xs">
               {updating ? (
                 <>
@@ -229,7 +245,7 @@ export default function CodeRepositoriesPage() {
               ) : (
                 <>
                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-slate-500">Auto-updating every 30s</span>
+                  <span className="text-slate-500">Auto-updating every 5s</span>
                 </>
               )}
             </div>
