@@ -14,6 +14,7 @@ import {
   Moon, 
   History, 
   Code,
+  FileText,
 } from "lucide-react";
 import { AvanamyLogo } from "@/components/AvanamyLogo";
 import { UserMenu } from '@/components/UserMenu';
@@ -124,6 +125,12 @@ export default function RootLayout({
                           icon={<Package className="h-4 w-4" aria-hidden="true" />}
                         >
                           API Products
+                        </NavLink>
+                        <NavLink 
+                          href="/specs" 
+                          icon={<FileText className="h-4 w-4" aria-hidden="true" />}
+                        >
+                          API Specs
                         </NavLink>
                         <NavLink 
                           href="/code-repositories" 

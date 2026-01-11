@@ -87,6 +87,23 @@ export interface ApiSpec {
   description?: string;
 }
 
+// Enriched spec for list views with provider/product context
+export interface ApiSpecEnriched {
+  id: string;
+  api_product_id: string;
+  name: string;
+  description?: string;
+  provider_id: string;
+  provider_name: string;
+  provider_slug: string;
+  product_name: string;
+  product_slug: string;
+  latest_version: number | null;
+  latest_version_created_at: string | null;
+  has_breaking_changes: boolean;
+  total_versions: number;
+}
+
 export interface SpecVersion {
   id?: string;               // Optional since backend might not return it
   version: number;           // numeric version
@@ -264,4 +281,41 @@ export interface UpdateCodeRepositoryRequest {
   name?: string;
   owner_team?: string;
   owner_email?: string;
+}
+
+// Impact Analysis Types
+export interface AffectedUsage {
+  file_path: string;
+  line_number: number;
+  code_context: string;
+  confidence: number;
+  repository_name: string;
+  repository_url: string | null;
+}
+
+export interface AffectedRepository {
+  repository_id: string;
+  repository_name: string;
+  repository_url: string | null;
+  usages_count: number;
+  usages: AffectedUsage[];
+}
+
+export interface BreakingChange {
+  breaking_change_type: string;
+  endpoint_path: string;
+  http_method: string | null;
+  severity: string;
+  affected_repositories: AffectedRepository[];
+}
+
+export interface ImpactAnalysis {
+  has_impact: boolean;
+  total_breaking_changes: number;
+  total_affected_repos: number;
+  total_usages_affected: number;
+  severity: string;
+  analyzed_at: string;
+  created_by_user_id: string | null;
+  breaking_changes: BreakingChange[];
 }

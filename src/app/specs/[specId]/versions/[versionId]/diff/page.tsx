@@ -5,9 +5,10 @@ import { useAuth } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
 import { RefreshCw, ArrowLeft, GitCompare, FileCode, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { getVersionDiff } from '@/lib/api';
-import type { VersionDiff } from '@/lib/types';
+import { getVersionDiff, getImpactAnalysis } from '@/lib/api';
+import type { VersionDiff, ImpactAnalysis } from '@/lib/types';
 import { DiffViewer } from '@/components/DiffViewer';
+import { ImpactAnalysisPanel } from '@/components/ImpactAnalysisPanel';
 
 export default function DiffPage() {
   const { isLoaded } = useAuth();
@@ -19,11 +20,31 @@ export default function DiffPage() {
   const [diffData, setDiffData] = useState<VersionDiff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [impactAnalysis, setImpactAnalysis] = useState<ImpactAnalysis | null>(null);
+  const [impactLoading, setImpactLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoaded) return;
+    
+    // Load both diff and impact analysis
     loadDiff();
+    loadImpactAnalysis();
   }, [isLoaded, specId, versionId]);
+
+  // Add new function after loadDiff:
+  const loadImpactAnalysis = async () => {
+    try {
+      setImpactLoading(true);
+      const impact = await getImpactAnalysis(versionId);
+      setImpactAnalysis(impact);
+    } catch (error) {
+      console.error('Failed to load impact analysis:', error);
+      // Don't show error - impact analysis is optional
+      setImpactAnalysis(null);
+    } finally {
+      setImpactLoading(false);
+    }
+  };
 
   const loadDiff = async () => {
     try {
@@ -130,6 +151,14 @@ export default function DiffPage() {
       {diffData && (
         <DiffViewer diff={diffData.diff} summary={diffData.summary} />
       )}
+
+      {/* Impact Analysis - NEW */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+          Impact Analysis
+        </h2>
+        <ImpactAnalysisPanel impact={impactAnalysis} loading={impactLoading} />
+      </div>
 
       {!diffData && !loading && !error && (
         <div className="text-center py-12 bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl">

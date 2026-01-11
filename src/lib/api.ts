@@ -17,7 +17,11 @@ async function getClerkToken(): Promise<string> {
   return '';
 }
 
-async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
+async function apiGet<T>(
+  path: string,
+  init?: RequestInit,
+  options?: { allowNotFound?: boolean }
+): Promise<T> {
   const token = await getClerkToken();
   
   console.log('📡 Making API call:', path, 'with token:', !!token); // DEBUG
@@ -31,6 +35,10 @@ async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
+    if (options?.allowNotFound && res.status === 404) {
+      return null as T;
+    }
+
     const text = await res.text().catch(() => "");
     // Only log as error if it's truly unexpected (not 404)
     if (res.status >= 500) {
@@ -107,8 +115,11 @@ import type {
   CodeRepositoryDetail,
   CreateCodeRepositoryRequest,
   UpdateCodeRepositoryRequest,
+  ImpactAnalysis,
+  ApiSpecEnriched,
 } from "./types";
 // Add these to your existing src/lib/api.ts file
+
 
 // Provider Types
 export interface Provider {
@@ -163,6 +174,11 @@ export async function updateProvider(
 
 export async function deleteProvider(providerId: string): Promise<void> {
   return apiDelete(`/providers/${providerId}`);
+}
+
+// Get all API specs with enriched provider/product context
+export function getAllApiSpecs(): Promise<ApiSpecEnriched[]> {
+  return apiGet<ApiSpecEnriched[]>('/api-specs/enriched');
 }
 
 export function getSpecsForProduct(productId: string): Promise<ApiSpec[]> {
@@ -698,4 +714,13 @@ export async function initiateGitHubApp(): Promise<{ authorization_url: string; 
 
 export async function listGitHubRepositories(installationId: number): Promise<{ repositories: any[] }> {
   return apiGet(`/api/github/repositories?installation_id=${installationId}`);  // ← Add /api
+}
+
+// Impact Analysis
+export function getImpactAnalysis(versionHistoryId: number): Promise<ImpactAnalysis | null> {
+  return apiGet<ImpactAnalysis>(
+    `/api/impact-analysis/version-history/${versionHistoryId}/impact`,
+    undefined,
+    { allowNotFound: true }
+  );
 }
