@@ -25,26 +25,10 @@ export default function DiffPage() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    
-    // Load both diff and impact analysis
-    loadDiff();
-    loadImpactAnalysis();
-  }, [isLoaded, specId, versionId]);
 
-  // Add new function after loadDiff:
-  const loadImpactAnalysis = async () => {
-    try {
-      setImpactLoading(true);
-      const impact = await getImpactAnalysis(versionId);
-      setImpactAnalysis(impact);
-    } catch (error) {
-      console.error('Failed to load impact analysis:', error);
-      // Don't show error - impact analysis is optional
-      setImpactAnalysis(null);
-    } finally {
-      setImpactLoading(false);
-    }
-  };
+    // Load diff first, then impact analysis with the correct version_id
+    loadDiff();
+  }, [isLoaded, specId, versionId]);
 
   const loadDiff = async () => {
     try {
@@ -52,11 +36,29 @@ export default function DiffPage() {
       const data = await getVersionDiff(specId, versionId);
       setDiffData(data);
       setError(null);
+
+      // After loading diff, load impact analysis with the correct version_id
+      loadImpactAnalysis(data.version_id);
     } catch (err) {
       setError('Failed to load diff');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load impact analysis using version_history_id (version_id from diff response)
+  const loadImpactAnalysis = async (versionHistoryId: number) => {
+    try {
+      setImpactLoading(true);
+      const impact = await getImpactAnalysis(versionHistoryId);
+      setImpactAnalysis(impact);
+    } catch (error) {
+      console.error('Failed to load impact analysis:', error);
+      // Don't show error - impact analysis is optional
+      setImpactAnalysis(null);
+    } finally {
+      setImpactLoading(false);
     }
   };
 
