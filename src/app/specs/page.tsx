@@ -29,7 +29,7 @@ export default function ApiSpecsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'updated' | 'name'>('updated');
+  const [sortBy, setSortBy] = useState<'provider' | 'updated'>('provider');
   const [uploadingForProduct, setUploadingForProduct] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -121,10 +121,13 @@ export default function ApiSpecsPage() {
         const aDate = a.latest_version_created_at ? new Date(a.latest_version_created_at).getTime() : 0;
         const bDate = b.latest_version_created_at ? new Date(b.latest_version_created_at).getTime() : 0;
         return bDate - aDate;
-      } else {
-        // Alphabetical
-        return a.name.localeCompare(b.name);
       }
+
+      const providerCompare = a.provider_name.localeCompare(b.provider_name);
+      if (providerCompare !== 0) return providerCompare;
+      const productCompare = a.product_name.localeCompare(b.product_name);
+      if (productCompare !== 0) return productCompare;
+      return a.name.localeCompare(b.name);
     });
 
     return sorted;
@@ -220,26 +223,26 @@ export default function ApiSpecsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
             <FileText className="h-8 w-8 text-purple-600" aria-hidden="true" />
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
               API Specifications
             </h1>
           </div>
-          <Link
-            href="/api-products"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
-            aria-label="Upload new API specification"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Upload Spec
-          </Link>
+          <p className="text-slate-600 dark:text-slate-400">
+            Browse and manage all API specifications across providers and products
+          </p>
         </div>
-        <p className="text-slate-600 dark:text-slate-400">
-          Browse and manage all API specifications across providers and products
-        </p>
+        <Link
+          href="/api-products"
+          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          aria-label="Upload new API specification"
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          Upload Spec
+        </Link>
       </div>
 
       {/* Filters and Search */}
@@ -335,6 +338,18 @@ export default function ApiSpecsPage() {
             <span className="text-sm text-slate-600 dark:text-slate-400">Sort by:</span>
             <div className="flex gap-2">
               <button
+                onClick={() => setSortBy('provider')}
+                className={`px-3 py-1 text-sm rounded transition-colors ${
+                  sortBy === 'provider'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+                aria-label="Sort by provider name"
+                aria-pressed={sortBy === 'provider'}
+              >
+                Provider Name
+              </button>
+              <button
                 onClick={() => setSortBy('updated')}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
                   sortBy === 'updated'
@@ -345,18 +360,6 @@ export default function ApiSpecsPage() {
                 aria-pressed={sortBy === 'updated'}
               >
                 Last Updated
-              </button>
-              <button
-                onClick={() => setSortBy('name')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  sortBy === 'name'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-                aria-label="Sort by name"
-                aria-pressed={sortBy === 'name'}
-              >
-                Name
               </button>
             </div>
           </div>
@@ -404,11 +407,11 @@ export default function ApiSpecsPage() {
               </div>
 
               {/* Products within Provider */}
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pl-4">
                 {Object.entries(providerGroup.products).map(([productId, productGroup]) => (
                   <div key={productId}>
                     {/* Product Header */}
-                    <div className="flex items-center gap-3 mb-3 ml-4">
+                    <div className="flex items-center gap-3 mb-3">
                       <Package className="h-4 w-4 text-slate-500" aria-hidden="true" />
                       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
                         {productGroup.product.name}
@@ -419,7 +422,7 @@ export default function ApiSpecsPage() {
                     </div>
 
                     {/* Specs Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 ml-8">
+                    <div className="grid grid-cols-1 gap-4">
                       {productGroup.specs.map(spec => (
                         <article
                           key={spec.id}
