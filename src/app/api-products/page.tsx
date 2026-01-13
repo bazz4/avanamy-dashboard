@@ -306,7 +306,7 @@ export default function ApiProductsPage() {
               </div>
 
               {/* Products Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {group.products.map((product) => (
                   <article
                     key={product.id}
@@ -384,33 +384,33 @@ export default function ApiProductsPage() {
                     )}
 
                     {/* Actions */}
-                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                      {/* View Spec Details button - only if spec exists */}
-                      {product.latest_spec_id && (
-                        <Link
-                          href={`/specs/${product.latest_spec_id}`}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                    <div className="space-y-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                      {/* View + Upload */}
+                      <div className="flex items-center gap-2">
+                        {product.latest_spec_id && (
+                          <Link
+                            href={`/specs/${product.latest_spec_id}`}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                          >
+                            <FileText className="h-4 w-4" aria-hidden="true" />
+                            View Spec
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => setUploadingProduct(product)}
+                          className={`${product.latest_spec_id ? 'flex-1' : 'w-full'} flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900`}
+                          aria-label={product.latest_spec_id ? `Update specification for ${product.name}` : `Upload specification for ${product.name}`}
                         >
-                          <FileText className="h-4 w-4" aria-hidden="true" />
-                          View Spec Details
-                        </Link>
-                      )}
-                      
-                      {/* Upload button - full width */}
-                      <button
-                        onClick={() => setUploadingProduct(product)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
-                        aria-label={product.latest_spec_id ? `Update specification for ${product.name}` : `Upload specification for ${product.name}`}
-                      >
-                        <Upload className="h-4 w-4" aria-hidden="true" />
-                        {product.latest_spec_id ? 'Update Spec' : 'Upload Spec'}
-                      </button>
-                      
-                      {/* Edit and Delete - side by side */}
+                          <Upload className="h-4 w-4" aria-hidden="true" />
+                          {product.latest_spec_id ? 'Update Spec' : 'Upload Spec'}
+                        </button>
+                      </div>
+
+                      {/* Edit and Delete - provider style */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setEditingProduct(product)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all"
                           aria-label={`Edit ${product.name}`}
                         >
                           <Edit2 className="h-4 w-4" aria-hidden="true" />
@@ -418,7 +418,7 @@ export default function ApiProductsPage() {
                         </button>
                         <button
                           onClick={() => setDeletingProduct(product)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-medium rounded-lg transition-all"
                           aria-label={`Delete ${product.name}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />

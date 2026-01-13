@@ -393,16 +393,19 @@ export default function ApiSpecsPage() {
           {Object.entries(groupedSpecs).map(([providerId, providerGroup]) => (
             <section key={providerId} aria-labelledby={`provider-${providerId}`}>
               {/* Provider Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <Building2 className="h-5 w-5 text-purple-600" aria-hidden="true" />
+              <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800 mb-4">
+                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
                 <h2
                   id={`provider-${providerId}`}
-                  className="text-xl font-bold text-slate-900 dark:text-white"
+                  className="text-2xl font-bold text-slate-900 dark:text-white"
                 >
                   {providerGroup.provider.name}
                 </h2>
-                <span className="px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded">
-                  Provider
+                <span
+                  className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-full"
+                  aria-label={`${Object.keys(providerGroup.products).length} ${Object.keys(providerGroup.products).length === 1 ? 'product' : 'products'}`}
+                >
+                  {Object.keys(providerGroup.products).length} {Object.keys(providerGroup.products).length === 1 ? 'product' : 'products'}
                 </span>
               </div>
 
@@ -412,11 +415,16 @@ export default function ApiSpecsPage() {
                   <div key={productId}>
                     {/* Product Header */}
                     <div className="flex items-center gap-3 mb-3">
-                      <Package className="h-4 w-4 text-slate-500" aria-hidden="true" />
-                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                      <div
+                        className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0"
+                        aria-hidden="true"
+                      >
+                        <Package className="h-4 w-4 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                         {productGroup.product.name}
                       </h3>
-                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
                         Product
                       </span>
                     </div>
