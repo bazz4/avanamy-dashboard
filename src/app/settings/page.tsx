@@ -1,10 +1,13 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { User, Bell, Key, CreditCard, Shield } from 'lucide-react';
+import { User, Bell, Key, CreditCard, Shield, Users } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function SettingsPage() {
   const { user } = useUser();
+  const pathname = usePathname();
 
   if (!user) {
     return (
@@ -13,6 +16,11 @@ export default function SettingsPage() {
       </div>
     );
   }
+
+  const tabs = [
+    { name: 'Profile', href: '/settings', icon: User },
+    { name: 'Organization', href: '/settings/organization', icon: Users },
+  ];
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto p-6">
@@ -24,6 +32,32 @@ export default function SettingsPage() {
         <p className="text-slate-600 dark:text-slate-400">
           Manage your account settings and preferences
         </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200 dark:border-slate-700">
+        <nav className="flex gap-8">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = pathname === tab.href;
+            return (
+              <Link
+                key={tab.name}
+                href={tab.href}
+                className={`
+                  flex items-center gap-2 pb-3 px-1 border-b-2 font-medium transition-colors
+                  ${isActive 
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }
+                `}
+              >
+                <Icon size={18} />
+                {tab.name}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Account Section */}
