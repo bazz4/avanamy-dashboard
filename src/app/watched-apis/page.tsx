@@ -29,10 +29,10 @@ export default function WatchedAPIsPage() {
     if (!isLoaded) return;
     loadWatchedAPIs(true); // Show loading spinner on initial load
     
-    // Auto-refresh every 10 seconds (no loading spinner)
+    // Auto-refresh every 30 seconds (no loading spinner)
     const interval = setInterval(() => {
       loadWatchedAPIs(false);
-    }, 30000);
+    }, 300000);
     
     // Cleanup on unmount
     return () => clearInterval(interval);
