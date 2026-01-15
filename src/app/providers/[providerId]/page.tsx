@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { getApiProductsByProvider } from "@/lib/api";
+import { actionButtonSpecSm } from "@/components/ui/actionClasses";
 
 export default async function ProviderProductsPage({
   params,
@@ -58,9 +60,10 @@ export default async function ProviderProductsPage({
                 <td className="border-b border-slate-200 px-3 py-2">
                   <Link
                     href={`/products/${prod.id}`}
-                    className="text-blue-600 hover:underline"
+                    className={actionButtonSpecSm}
                   >
-                    View specs
+                    <FileText className="h-4 w-4" aria-hidden="true" />
+                    View Specs
                   </Link>
                 </td>
               </tr>

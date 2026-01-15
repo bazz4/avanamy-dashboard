@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { History } from "lucide-react";
 import { getSpecsForProduct } from "@/lib/api";
+import { actionButtonVersionsSm } from "@/components/ui/actionClasses";
 
 export default async function ProductSpecsPage({
   params,
@@ -61,8 +63,9 @@ export default async function ProductSpecsPage({
                   <td className="px-4 py-3 border-b border-gray-200">
                     <Link
                       href={`/specs/${spec.id}`}
-                      className="text-blue-600 hover:underline font-medium"
+                      className={actionButtonVersionsSm}
                     >
+                      <History className="h-4 w-4" aria-hidden="true" />
                       View Versions
                     </Link>
                   </td>

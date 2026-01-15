@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X } from 'lucide-react';
+import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X, History } from 'lucide-react';
 import { getWatchedAPIs, triggerPoll, deleteWatchedAPI } from '@/lib/api';
 import type { WatchedAPI } from '@/lib/types';
 import { PollStatusBadge } from '@/components/PollStatusBadge';
 import { AddWatchedAPIModal } from '@/components/AddWatchedAPIModal';
 import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
+import { actionButtonVersions } from '@/components/ui/actionClasses';
 
 import { ConfirmDialog } from '@/components/ConfirmationDialog';
-import { Search, Edit2, Trash2, GitBranch } from 'lucide-react';
+import { Search, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 
 export default function WatchedAPIsPage() {
@@ -440,9 +441,9 @@ function APICard({
         {api.api_spec_id && (
           <button 
             onClick={() => window.location.href = `/specs/${api.api_spec_id}/versions`}
-            className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all"
+            className={actionButtonVersions}
           >
-            <GitBranch className="h-4 w-4 inline mr-2" />
+            <History className="h-4 w-4" aria-hidden="true" />
             View Versions
           </button>
         )}

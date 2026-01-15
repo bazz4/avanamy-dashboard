@@ -13,13 +13,13 @@ import {
   Clock,
   Upload,
   ChevronDown,
-  Eye,
   History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAllApiSpecs } from '@/lib/api';
 import type { ApiSpecEnriched } from '@/lib/types';
 import { UploadSpecModal } from '@/components/UploadSpecModal';
+import { actionButtonSpec, actionButtonVersions } from '@/components/ui/actionClasses';
 
 export default function ApiSpecsPage() {
   const { isLoaded } = useAuth();
@@ -394,7 +394,12 @@ export default function ApiSpecsPage() {
             <section key={providerId} aria-labelledby={`provider-${providerId}`}>
               {/* Provider Header */}
               <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800 mb-4">
-                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                <div
+                  className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Building2 className="h-4 w-4 text-white" />
+                </div>
                 <h2
                   id={`provider-${providerId}`}
                   className="text-2xl font-bold text-slate-900 dark:text-white"
@@ -480,15 +485,15 @@ export default function ApiSpecsPage() {
                           <div className="flex items-center gap-2">
                             <Link
                               href={`/specs/${spec.id}`}
-                              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                              className={`flex-1 ${actionButtonSpec}`}
                               aria-label={`View ${spec.name} specification`}
                             >
-                              <Eye className="h-4 w-4" aria-hidden="true" />
+                              <FileText className="h-4 w-4" aria-hidden="true" />
                               View Spec
                             </Link>
                             <Link
                               href={`/specs/${spec.id}/versions`}
-                              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className={`flex-1 ${actionButtonVersions}`}
                               aria-label={`View version history for ${spec.name}`}
                             >
                               <History className="h-4 w-4" aria-hidden="true" />

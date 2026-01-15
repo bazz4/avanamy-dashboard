@@ -11,6 +11,7 @@ import { AddApiProductModal } from '@/components/AddApiProductModal';
 import { EditApiProductModal } from '@/components/EditApiProductModal';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { UploadSpecModal } from '@/components/UploadSpecModal';
+import { actionButtonSpec, actionButtonSecondary } from '@/components/ui/actionClasses';
 
 export default function ApiProductsPage() {
   const { isLoaded } = useAuth();
@@ -293,7 +294,12 @@ export default function ApiProductsPage() {
             <section key={group.provider.id} className="space-y-4">
               {/* Provider Header */}
               <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800">
-                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                <div
+                  className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Building2 className="h-4 w-4 text-white" />
+                </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {group.provider.name}
                 </h2>
@@ -390,7 +396,7 @@ export default function ApiProductsPage() {
                         {product.latest_spec_id && (
                           <Link
                             href={`/specs/${product.latest_spec_id}`}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                            className={`flex-1 ${actionButtonSpec}`}
                           >
                             <FileText className="h-4 w-4" aria-hidden="true" />
                             View Spec
@@ -398,7 +404,7 @@ export default function ApiProductsPage() {
                         )}
                         <button
                           onClick={() => setUploadingProduct(product)}
-                          className={`${product.latest_spec_id ? 'flex-1' : 'w-full'} flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900`}
+                          className={`${product.latest_spec_id ? 'flex-1' : 'w-full'} ${actionButtonSecondary}`}
                           aria-label={product.latest_spec_id ? `Update specification for ${product.name}` : `Upload specification for ${product.name}`}
                         >
                           <Upload className="h-4 w-4" aria-hidden="true" />
