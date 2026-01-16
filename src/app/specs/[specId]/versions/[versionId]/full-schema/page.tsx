@@ -444,7 +444,7 @@ function UnifiedDiffView({
                 <div className="w-12 flex-shrink-0 text-right pr-4 py-1 text-slate-400 dark:text-slate-500 select-none border-r border-slate-200 dark:border-slate-800">
                   {lineNum + 1}
                 </div>
-                <div className="flex-1 px-4 py-1 flex items-start">
+                <div className="flex-1 min-w-0 px-4 py-1 flex items-start">
                   {section && lineNum === sectionStartLine && (
                     <button
                       onClick={() => toggleSection(section)}
@@ -464,7 +464,7 @@ function UnifiedDiffView({
                     <span className="text-red-600 dark:text-red-400 mr-2">-</span>
                   )}
                   <pre
-                    className={`whitespace-pre font-mono ${
+                    className={`whitespace-nowrap overflow-hidden text-ellipsis font-mono ${
                       part.added
                         ? 'text-green-700 dark:text-green-300'
                         : part.removed
@@ -565,11 +565,11 @@ function SplitDiffView({
                 <div className="w-12 flex-shrink-0 text-right pr-4 py-1 text-slate-400 dark:text-slate-500 select-none border-r border-slate-200 dark:border-slate-800">
                   {idx + 1}
                 </div>
-                <div className="flex-1 px-4 py-1 flex items-start">
+                <div className="flex-1 min-w-0 px-4 py-1 flex items-start">
                   {isRemoved && (
                     <span className="text-red-600 dark:text-red-400 mr-2">-</span>
                   )}
-                  <pre className={`whitespace-pre font-mono ${
+                  <pre className={`whitespace-nowrap overflow-hidden text-ellipsis font-mono ${
                     isRemoved 
                       ? 'text-red-700 dark:text-red-300' 
                       : 'text-slate-600 dark:text-slate-400'
@@ -601,11 +601,11 @@ function SplitDiffView({
                 <div className="w-12 flex-shrink-0 text-right pr-4 py-1 text-slate-400 dark:text-slate-500 select-none border-r border-slate-200 dark:border-slate-800">
                   {idx + 1}
                 </div>
-                <div className="flex-1 px-4 py-1 flex items-start">
+                <div className="flex-1 min-w-0 px-4 py-1 flex items-start">
                   {isAdded && (
                     <span className="text-green-600 dark:text-green-400 mr-2">+</span>
                   )}
-                  <pre className={`whitespace-pre font-mono ${
+                  <pre className={`whitespace-nowrap overflow-hidden text-ellipsis font-mono ${
                     isAdded 
                       ? 'text-green-700 dark:text-green-300' 
                       : 'text-slate-600 dark:text-slate-400'

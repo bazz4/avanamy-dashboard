@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Package, Plus, Search, Edit2, Trash2, Building2, Upload, CheckCircle, AlertCircle, ChevronRight, FileText, Clock } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Building2, Upload, CheckCircle, AlertCircle, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiProducts, deleteApiProduct, getProviders } from '@/lib/api';
 import type { ApiProduct, Provider } from '@/lib/types';
@@ -11,7 +11,6 @@ import { AddApiProductModal } from '@/components/AddApiProductModal';
 import { EditApiProductModal } from '@/components/EditApiProductModal';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { UploadSpecModal } from '@/components/UploadSpecModal';
-import { actionButtonSpec, actionButtonSecondary } from '@/components/ui/actionClasses';
 
 export default function ApiProductsPage() {
   const { isLoaded } = useAuth();
@@ -118,13 +117,15 @@ export default function ApiProductsPage() {
     const date = new Date(dateString);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const formatUnit = (value: number, unit: string) =>
+      `${value} ${unit}${value === 1 ? '' : 's'} ago`;
     
     if (diffInDays === 0) return 'Today';
     if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
+    if (diffInDays < 7) return formatUnit(diffInDays, 'day');
+    if (diffInDays < 30) return formatUnit(Math.floor(diffInDays / 7), 'week');
+    if (diffInDays < 365) return formatUnit(Math.floor(diffInDays / 30), 'month');
+    return formatUnit(Math.floor(diffInDays / 365), 'year');
   }
 
   // Group products by provider
@@ -294,12 +295,7 @@ export default function ApiProductsPage() {
             <section key={group.provider.id} className="space-y-4">
               {/* Provider Header */}
               <div className="flex items-center gap-3 pb-2 border-b-2 border-purple-200 dark:border-purple-800">
-                <div
-                  className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center"
-                  aria-hidden="true"
-                >
-                  <Building2 className="h-4 w-4 text-white" />
-                </div>
+                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" aria-hidden="true" />
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {group.provider.name}
                 </h2>
@@ -325,9 +321,21 @@ export default function ApiProductsPage() {
                           <Package className="h-6 w-6 text-white" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-                            {product.name}
-                          </h3>
+                            <div className="flex items-center gap-2 w-full">
+                              <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate flex-1">
+                                {product.name}
+                              </h3>
+                              {product.has_breaking_changes && (
+                                <span
+                                  className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded flex-shrink-0 ml-auto"
+                                  role="status"
+                                  aria-label={`${product.breaking_changes_count} ${product.breaking_changes_count === 1 ? 'spec has' : 'specs have'} breaking changes`}
+                                >
+                                <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                                {product.breaking_changes_count} Breaking
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {product.slug}
                           </p>
@@ -396,7 +404,7 @@ export default function ApiProductsPage() {
                         {product.latest_spec_id && (
                           <Link
                             href={`/specs/${product.latest_spec_id}`}
-                            className={`flex-1 ${actionButtonSpec}`}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                           >
                             <FileText className="h-4 w-4" aria-hidden="true" />
                             View Spec
@@ -404,7 +412,7 @@ export default function ApiProductsPage() {
                         )}
                         <button
                           onClick={() => setUploadingProduct(product)}
-                          className={`${product.latest_spec_id ? 'flex-1' : 'w-full'} ${actionButtonSecondary}`}
+                          className={`${product.latest_spec_id ? 'flex-1' : 'w-full'} flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900`}
                           aria-label={product.latest_spec_id ? `Update specification for ${product.name}` : `Upload specification for ${product.name}`}
                         >
                           <Upload className="h-4 w-4" aria-hidden="true" />

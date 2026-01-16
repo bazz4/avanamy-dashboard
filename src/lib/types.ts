@@ -46,7 +46,10 @@ export interface ApiProduct {
   latest_spec_id: string | null;
   latest_spec_version: string | null;
   latest_spec_uploaded_at: string | null;
-  spec_count?: number; 
+  spec_count?: number;
+  // Breaking changes info
+  has_breaking_changes?: boolean;
+  breaking_changes_count?: number;
 }
 
 export interface ProductSpecsSummary {
@@ -154,6 +157,9 @@ export interface WatchedAPI {
   consecutive_failures: number;
   status: string;
   created_at: string;
+  // Breaking changes info
+  has_breaking_changes?: boolean;
+  latest_version_id?: number;
 }
 
 // Phase 6: Alert Configuration

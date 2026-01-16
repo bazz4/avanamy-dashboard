@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
-import { RefreshCw, GitBranch, Eye, Calendar, FileText, Sparkles } from 'lucide-react';
+import { RefreshCw, GitBranch, Eye, Calendar, FileText, Sparkles, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { getSpecVersions } from '@/lib/api';
 import type { SpecVersion } from '@/lib/types';
 
@@ -51,6 +51,13 @@ export default function VersionsPage() {
     });
   };
 
+  // Count breaking changes versions
+  const breakingChangesCount = versions.filter(v => {
+    if (!v.diff) return false;
+    const diff = typeof v.diff === 'object' ? v.diff : JSON.parse(v.diff);
+    return diff.breaking === true;
+  }).length;
+
   if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -85,7 +92,7 @@ export default function VersionsPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard
           label="Total Versions"
           value={versions.length}
@@ -103,6 +110,12 @@ export default function VersionsPage() {
           value={versions.filter(v => v.diff).length}
           icon={<Sparkles className="h-5 w-5" />}
           color="green"
+        />
+        <StatCard
+          label="Breaking Changes"
+          value={breakingChangesCount}
+          icon={<ShieldAlert className="h-5 w-5" />}
+          color="red"
         />
       </div>
 
@@ -153,6 +166,7 @@ function StatCard({
     purple: 'bg-purple-500/10 text-purple-400',
     cyan: 'bg-cyan-500/10 text-cyan-400',
     green: 'bg-green-500/10 text-green-400',
+    red: 'bg-red-500/10 text-red-400',
   }[color];
 
   return (
@@ -185,20 +199,36 @@ function VersionCard({
   router: ReturnType<typeof useRouter>;
   specId: string;  
 }) {
+  // Check if this version has breaking changes
+  const hasBreakingChanges = version.diff && (() => {
+    try {
+      const diff = typeof version.diff === 'object' ? version.diff : JSON.parse(version.diff);
+      return diff.breaking === true;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <div className="relative pl-20">
       {/* Timeline Dot */}
       <div className={`absolute left-6 top-6 h-5 w-5 rounded-full border-4 border-white dark:border-slate-950 ${
-        isLatest
+        hasBreakingChanges
+          ? 'bg-gradient-to-r from-red-500 to-red-600 shadow-lg shadow-red-500/50'
+          : isLatest
           ? 'bg-gradient-to-r from-purple-500 to-cyan-500 shadow-lg shadow-purple-500/50'
           : 'bg-slate-400 dark:bg-slate-700'
       }`} />
 
       {/* Card */}
-      <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 hover:border-purple-500/30 transition-all shadow-sm dark:shadow-none">
+      <div className={`bg-white dark:bg-slate-900/50 border rounded-xl p-6 hover:border-purple-500/30 transition-all shadow-sm dark:shadow-none ${
+        hasBreakingChanges 
+          ? 'border-red-400 dark:border-red-700' 
+          : 'border-slate-200 dark:border-slate-800'
+      }`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Version {version.version}
@@ -214,6 +244,18 @@ function VersionCard({
               {formatDate(version.created_at)}
             </div>
           </div>
+          
+          {/* Breaking Change Badge - Right Aligned */}
+          {hasBreakingChanges && (
+            <span
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg border border-red-300 dark:border-red-700 font-semibold text-sm flex-shrink-0"
+              role="status"
+              aria-label="This version contains breaking changes"
+            >
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              Breaking
+            </span>
+          )}
         </div>
 
         {/* Changelog */}
@@ -225,11 +267,23 @@ function VersionCard({
 
         {/* AI Summary */}
         {version.summary && (
-          <div className="bg-purple-500/10 dark:bg-purple-500/10 border border-purple-500/30 dark:border-purple-500/30 rounded-lg p-4 mb-4">
+          <div className={`border rounded-lg p-4 mb-4 ${
+            hasBreakingChanges
+              ? 'bg-red-500/10 dark:bg-red-500/10 border-red-500/30 dark:border-red-500/30'
+              : 'bg-purple-500/10 dark:bg-purple-500/10 border-purple-500/30 dark:border-purple-500/30'
+          }`}>
             <div className="flex items-start gap-2">
-              <Sparkles className="h-5 w-5 text-purple-400 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+              <Sparkles className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                hasBreakingChanges
+                  ? 'text-red-400 dark:text-red-400'
+                  : 'text-purple-400 dark:text-purple-400'
+              }`} />
               <div>
-                <p className="text-sm font-semibold text-purple-400 dark:text-purple-400 mb-1">AI Summary</p>
+                <p className={`text-sm font-semibold mb-1 ${
+                  hasBreakingChanges
+                    ? 'text-red-400 dark:text-red-400'
+                    : 'text-purple-400 dark:text-purple-400'
+                }`}>AI Summary</p>
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{version.summary}</p>
               </div>
             </div>
@@ -248,7 +302,7 @@ function VersionCard({
             </button>
           )}
           
-          {/* View Docs Button - NEW */}
+          {/* View Docs Button */}
           <button
             onClick={() => window.open(`http://localhost:8000/docs/${specId}/versions/${version.version}?format=html&raw=true`, '_blank')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 dark:bg-blue-500/10 hover:bg-blue-500/20 dark:hover:bg-blue-500/20 text-blue-400 dark:text-blue-400 border border-blue-500/30 dark:border-blue-500/30 hover:border-blue-400 dark:hover:border-blue-400 font-semibold rounded-lg transition-all"

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import { getSpecVersions } from '@/lib/api';
 import { RegenerateDocsButton } from '@/components/RegenerateDocsButton';
 import { UploadNewVersionForm } from '@/components/UploadNewVersionForm';
@@ -60,6 +60,10 @@ export default function SpecDetailPage() {
   }
 
   const current = versions[0];
+  
+  // Check if current version has breaking changes
+  const hasBreakingChanges = current?.diff && 
+    (typeof current.diff === 'object' && current.diff.breaking === true);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-6 space-y-6">
@@ -69,6 +73,45 @@ export default function SpecDetailPage() {
         </Link>{" "}
         / <span className="text-gray-900 dark:text-white font-medium">Specification</span>
       </div>
+
+      {/* ✨ NEW: Breaking Changes Banner */}
+      {hasBreakingChanges && (
+        <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow-lg border-2 border-red-400 dark:border-red-700">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-8 w-8" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold mb-2">
+                  ⚠️ Breaking Changes Detected
+                </h3>
+                <p className="text-red-50 mb-4 text-sm">
+                  Version {current.label ?? `v${current.version}`} contains breaking changes that may affect your code.
+                  {current.summary && (
+                    <span className="block mt-2 font-medium">{current.summary}</span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href={`/specs/${specId}/versions/${current.version}/diff`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    View Detailed Changes
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href={`/impact-analysis?spec_id=${specId}&version=${current.version}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
+                  >
+                    Check Impact on Your Code
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -107,7 +150,7 @@ export default function SpecDetailPage() {
             <ul className="space-y-3 text-sm">
               {versions.map((v) => (
                 <li
-                  key={v.version}  // Changed from v.id to v.version
+                  key={v.version}
                   className="rounded border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 px-3 py-2"
                 >
                   <div className="flex items-start justify-between">

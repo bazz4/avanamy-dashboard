@@ -1,20 +1,21 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X, History } from 'lucide-react';
+import { Plus, RefreshCw, Radio, AlertCircle, Activity, Clock, X, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { getWatchedAPIs, triggerPoll, deleteWatchedAPI } from '@/lib/api';
 import type { WatchedAPI } from '@/lib/types';
 import { PollStatusBadge } from '@/components/PollStatusBadge';
 import { AddWatchedAPIModal } from '@/components/AddWatchedAPIModal';
 import { EditWatchedAPIModal } from '@/components/EditWatchedAPIModal';
-import { actionButtonVersions } from '@/components/ui/actionClasses';
 
 import { ConfirmDialog } from '@/components/ConfirmationDialog';
-import { Search, Edit2, Trash2 } from 'lucide-react';
+import { Search, Edit2, Trash2, GitBranch } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 export default function WatchedAPIsPage() {
   const { isLoaded } = useAuth();
+  const router = useRouter();
   const [watchedAPIs, setWatchedAPIs] = useState<WatchedAPI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export default function WatchedAPIsPage() {
     // Auto-refresh every 30 seconds (no loading spinner)
     const interval = setInterval(() => {
       loadWatchedAPIs(false);
-    }, 300000);
+    }, 30000);
     
     // Cleanup on unmount
     return () => clearInterval(interval);
@@ -109,7 +110,8 @@ export default function WatchedAPIsPage() {
     total: watchedAPIs.length,
     active: watchedAPIs.filter(api => api.polling_enabled).length,
     healthy: watchedAPIs.filter(api => api.consecutive_failures === 0).length,
-    alerts: watchedAPIs.reduce((sum, api) => sum + (api.consecutive_failures || 0), 0),
+    failures: watchedAPIs.reduce((sum, api) => sum + (api.consecutive_failures || 0), 0),
+    breakingChanges: watchedAPIs.filter(api => api.has_breaking_changes).length,
   };
 
   // Filter watched APIs based on search query
@@ -205,8 +207,8 @@ export default function WatchedAPIsPage() {
         </div>
       )}
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Row - NOW WITH 5 CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard
           label="Total Watched"
           value={stats.total}
@@ -230,10 +232,17 @@ export default function WatchedAPIsPage() {
         />
         <StatCard
           label="Total Failures"
-          value={stats.alerts}
+          value={stats.failures}
           icon={<Clock className="h-5 w-5" />}
           color="slate"
           change="Last 7 days"
+        />
+        <StatCard
+          label="Breaking Changes"
+          value={stats.breakingChanges}
+          icon={<ShieldAlert className="h-5 w-5" />}
+          color="red"
+          change={`${stats.breakingChanges} ${stats.breakingChanges === 1 ? 'API' : 'APIs'} affected`}
         />
       </div>
 
@@ -279,24 +288,33 @@ export default function WatchedAPIsPage() {
               onPollNow={handlePollNow}
               formatTimestamp={formatTimestamp}
               onEdit={handleEdit}      
-              onDelete={handleDelete}  
+              onDelete={handleDelete}
+              router={router}
             />
           ))
         )}
       </div>
 
       {/* Edit Modal */}
-      <EditWatchedAPIModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSuccess={loadWatchedAPIs}
-        watchedAPI={selectedAPI}
-      />
+      {selectedAPI && (
+        <EditWatchedAPIModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedAPI(null);
+          }}
+          onSuccess={loadWatchedAPIs}
+          watchedAPI={selectedAPI}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setApiToDelete(null);
+        }}
         onConfirm={confirmDelete}
         title="Delete Watched API"
         message={`Are you sure you want to delete monitoring for ${apiToDelete?.provider_name && apiToDelete?.product_name ? `${apiToDelete.provider_name} - ${apiToDelete.product_name}` : 'this API'}? This action cannot be undone.`}
@@ -332,6 +350,7 @@ function StatCard({
     green: 'bg-green-500/10 text-green-400',
     cyan: 'bg-cyan-500/10 text-cyan-400',
     slate: 'bg-slate-500/10 text-slate-400',
+    red: 'bg-red-500/10 text-red-400',
   }[color];
 
   return (
@@ -355,14 +374,16 @@ function APICard({
   api, 
   onPollNow,
   formatTimestamp,
-  onEdit,     // Add this
-  onDelete    // Add this
+  onEdit,
+  onDelete,
+  router
 }: { 
   api: WatchedAPI; 
   onPollNow: (id: string) => void;
   formatTimestamp: (timestamp: string | null) => string;
-  onEdit: (api: WatchedAPI) => void;      // Add this
-  onDelete: (api: WatchedAPI) => void;    // Add this
+  onEdit: (api: WatchedAPI) => void;
+  onDelete: (api: WatchedAPI) => void;
+  router: ReturnType<typeof useRouter>;
 }) {
   const [polling, setPolling] = useState(false);
 
@@ -428,8 +449,9 @@ function APICard({
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions - NEW LAYOUT */}
       <div className="flex gap-3 mt-6">
+        {/* Left side: Poll Now, View Versions, Breaking Badge */}
         <button
           onClick={handlePoll}
           disabled={polling}
@@ -438,29 +460,45 @@ function APICard({
           <RefreshCw className={`h-4 w-4 inline mr-2 ${polling ? 'animate-spin' : ''}`} />
           {polling ? 'Polling...' : 'Poll Now'}
         </button>
+        
         {api.api_spec_id && (
           <button 
-            onClick={() => window.location.href = `/specs/${api.api_spec_id}/versions`}
-            className={actionButtonVersions}
+            onClick={() => router.push(`/specs/${api.api_spec_id}/versions`)}
+            className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 font-semibold rounded-lg transition-all"
           >
-            <History className="h-4 w-4" aria-hidden="true" />
+            <GitBranch className="h-4 w-4 inline mr-2" />
             View Versions
           </button>
         )}
-        <button 
-          onClick={() => onEdit(api)}
-          className="px-4 py-2 bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/30 hover:border-slate-400 font-semibold rounded-lg transition-all"
-        >
-          <Edit2 className="h-4 w-4 inline mr-2" />
-          Edit
-        </button>
-        <button 
-          onClick={() => onDelete(api)}
-          className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-400 font-semibold rounded-lg transition-all ml-auto"
-        >
-          <Trash2 className="h-4 w-4 inline mr-2" />
-          Delete
-        </button>
+        
+        {/* Breaking Changes Badge - Links to diff page */}
+        {api.has_breaking_changes && api.api_spec_id && api.latest_version_id && (
+          <button
+            onClick={() => router.push(`/specs/${api.api_spec_id}/versions/${api.latest_version_id}/diff`)}
+            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-400 font-semibold rounded-lg transition-all"
+          >
+            <AlertTriangle className="h-4 w-4 inline mr-2" />
+            Breaking Changes
+          </button>
+        )}
+        
+        {/* Right side: Edit, Delete */}
+        <div className="ml-auto flex gap-3">
+          <button 
+            onClick={() => onEdit(api)}
+            className="px-4 py-2 bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/30 hover:border-slate-400 font-semibold rounded-lg transition-all"
+          >
+            <Edit2 className="h-4 w-4 inline mr-2" />
+            Edit
+          </button>
+          <button 
+            onClick={() => onDelete(api)}
+            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-400 font-semibold rounded-lg transition-all"
+          >
+            <Trash2 className="h-4 w-4 inline mr-2" />
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );

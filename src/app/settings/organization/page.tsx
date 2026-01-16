@@ -5,6 +5,8 @@ import { useAuth } from '@clerk/nextjs';
 import { Mail, UserPlus, Trash2, Shield, Users, Clock, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { toast } from 'sonner';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 interface OrganizationMember {
   id: string;
@@ -51,6 +53,11 @@ export default function OrganizationSettingsPage() {
   const [inviteRole, setInviteRole] = useState('developer');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: 'remove-member' | 'revoke-invitation';
+    member?: OrganizationMember;
+    invitation?: OrganizationInvitation;
+  } | null>(null);
   const tabs = [
     { name: 'Profile', href: '/settings', icon: UserIcon },
     { name: 'Organization', href: '/settings/organization', icon: Users },
@@ -91,7 +98,7 @@ export default function OrganizationSettingsPage() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
-      alert('Please enter an email address');
+      toast.error('Please enter an email address');
       return;
     }
 
@@ -115,18 +122,18 @@ export default function OrganizationSettingsPage() {
       setInviteEmail('');
       setInviteRole('developer');
       await loadData();
-      alert('Invitation sent successfully!');
+      toast.success('Invitation sent successfully');
     } catch (err: any) {
       console.error('Failed to invite user:', err);
-      alert(err.message || 'Failed to send invitation');
+      toast.error(err.message || 'Failed to send invitation');
     }
   };
 
+  const requestRemoveMember = (member: OrganizationMember) => {
+    setConfirmDialog({ type: 'remove-member', member });
+  };
+
   const handleRemoveMember = async (member: OrganizationMember) => {
-    if (!confirm(`Are you sure you want to remove ${member.user_name || member.user_email || 'this member'}?`)) {
-      return;
-    }
-    
     try {
       const token = await getClerkToken();
       const res = await fetch(`${API_BASE_URL}/api/organizations/current/members/${member.user_id}`, {
@@ -140,18 +147,18 @@ export default function OrganizationSettingsPage() {
       }
       
       await loadData();
-      alert('Member removed successfully');
+      toast.success('Member removed');
     } catch (err: any) {
       console.error('Failed to remove member:', err);
-      alert(err.message || 'Failed to remove member');
+      toast.error(err.message || 'Failed to remove member');
     }
   };
 
-  const handleRevokeInvitation = async (invitationId: string) => {
-    if (!confirm('Are you sure you want to revoke this invitation?')) {
-      return;
-    }
+  const requestRevokeInvitation = (invitation: OrganizationInvitation) => {
+    setConfirmDialog({ type: 'revoke-invitation', invitation });
+  };
 
+  const handleRevokeInvitation = async (invitationId: string) => {
     try {
       const token = await getClerkToken();
       const res = await fetch(`${API_BASE_URL}/api/organizations/current/invitations/${invitationId}`, {
@@ -165,10 +172,10 @@ export default function OrganizationSettingsPage() {
       }
 
       await loadData();
-      alert('Invitation revoked');
+      toast.success('Invitation revoked');
     } catch (err: any) {
       console.error('Failed to revoke invitation:', err);
-      alert(err.message || 'Failed to revoke invitation');
+      toast.error(err.message || 'Failed to revoke invitation');
     }
   };
 
@@ -307,7 +314,7 @@ export default function OrganizationSettingsPage() {
                   
                   {member.role !== 'owner' && (
                     <button
-                      onClick={() => handleRemoveMember(member)}
+                      onClick={() => requestRemoveMember(member)}
                       className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                       title="Remove member"
                     >
@@ -357,7 +364,7 @@ export default function OrganizationSettingsPage() {
                     Pending
                   </span>
                   <button
-                    onClick={() => handleRevokeInvitation(invitation.id)}
+                    onClick={() => requestRevokeInvitation(invitation)}
                     className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                     title="Revoke invitation"
                   >
@@ -434,6 +441,27 @@ export default function OrganizationSettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <DeleteConfirmDialog
+          title={confirmDialog.type === 'remove-member' ? 'Remove Member' : 'Revoke Invitation'}
+          message={
+            confirmDialog.type === 'remove-member'
+              ? `Are you sure you want to remove ${confirmDialog.member?.user_name || confirmDialog.member?.user_email || 'this member'}? This action cannot be undone.`
+              : `Are you sure you want to revoke the invitation for ${confirmDialog.invitation?.email}? This action cannot be undone.`
+          }
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={async () => {
+            if (confirmDialog.type === 'remove-member' && confirmDialog.member) {
+              await handleRemoveMember(confirmDialog.member);
+            }
+            if (confirmDialog.type === 'revoke-invitation' && confirmDialog.invitation) {
+              await handleRevokeInvitation(confirmDialog.invitation.id);
+            }
+            setConfirmDialog(null);
+          }}
+        />
       )}
     </div>
   );
