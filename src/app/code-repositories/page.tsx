@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, GitBranch, Users, Mail, Search, RefreshCw } from 'lucide-react';
+import { Plus, GitBranch, Users, Mail, Search, RefreshCw, Clock, Calendar, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { CodeRepository } from '@/lib/types';
 import { getCodeRepositories, deleteCodeRepository, triggerCodeRepositoryScan, connectGitHubToRepository } from '@/lib/api';
@@ -29,6 +29,7 @@ export default function CodeRepositoriesPage() {
     return sessionStorage.getItem('github_token');
   });
   const [scanRequested, setScanRequested] = useState<Set<string>>(() => new Set());
+  const [showStatusLegend, setShowStatusLegend] = useState(false);
 
   useEffect(() => {
     if (isLoaded) {
@@ -98,120 +99,153 @@ export default function CodeRepositoriesPage() {
   }, [repositories]);
 
   async function loadRepositories(showLoading = true) {
+    if (showLoading) setLoading(true);
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
       const data = await getCodeRepositories();
       setRepositories(data);
-      setFilteredRepositories(data);
       setHasLoadedOnce(true);
-    } catch (error) {
-      console.log('Failed to load code repositories:', error);
-      toast.error('Failed to load code repositories');
+    } catch (error: any) {
+      console.error('Failed to load repositories:', error);
+      toast.error(error.message || 'Failed to load repositories');
     } finally {
       setLoading(false);
     }
   }
 
   async function refreshRepositories() {
+    if (updating) return;
+    setUpdating(true);
     try {
-      setUpdating(true);
       const data = await getCodeRepositories();
       setRepositories(data);
-      // Preserve current search filter
-      if (searchQuery.trim() === '') {
-        setFilteredRepositories(data);
-      } else {
-        const query = searchQuery.toLowerCase();
-        setFilteredRepositories(
-          data.filter(
-            (repo) =>
-              repo.name.toLowerCase().includes(query) ||
-              repo.url.toLowerCase().includes(query) ||
-              repo.owner_team?.toLowerCase().includes(query)
-          )
-        );
-      }
     } catch (error) {
-      console.log('Failed to refresh code repositories:', error);
+      console.error('Failed to refresh repositories:', error);
     } finally {
       setUpdating(false);
+    }
+  }
+
+  async function handleScan(repo: CodeRepository) {
+    setScanRequested((prev) => new Set(prev).add(repo.id));
+    try {
+      await triggerCodeRepositoryScan(repo.id);
+      toast.success(`Scan started for ${repo.name}`);
+      setTimeout(() => refreshRepositories(), 1000);
+    } catch (error: any) {
+      console.error('Failed to trigger scan:', error);
+      toast.error(error.message || 'Failed to trigger scan');
+      setScanRequested((prev) => {
+        const next = new Set(prev);
+        next.delete(repo.id);
+        return next;
+      });
     }
   }
 
   async function handleDelete(repo: CodeRepository) {
     try {
       await deleteCodeRepository(repo.id);
-      toast.success('Code repository deleted');
-      loadRepositories();
+      toast.success(`Repository "${repo.name}" deleted`);
+      setRepositories((prev) => prev.filter((item) => item.id !== repo.id));
       setDeletingRepo(null);
-    } catch (error) {
-      console.log('Failed to delete code repository:', error);
-      toast.error('Failed to delete code repository');
+    } catch (error: any) {
+      console.error('Failed to delete repository:', error);
+      toast.error(error.message || 'Failed to delete repository');
     }
   }
 
-  async function handleScan(repo: CodeRepository) {
-    try {
-      if (!repo.access_token_encrypted && githubToken) {
-        await connectGitHubToRepository(repo.id, githubToken);
-      }
-      setScanRequested((prev) => new Set(prev).add(repo.id));
-      setRepositories((prev) =>
-        prev.map((item) =>
-          item.id === repo.id ? { ...item, scan_status: 'pending' } : item
-        )
-      );
-      await triggerCodeRepositoryScan(repo.id);
-      toast.success('Scan started', { id: `scan-${repo.id}` });
-      await refreshRepositories();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to start scan');
-      setScanRequested((prev) => {
-        const next = new Set(prev);
-        next.delete(repo.id);
-        return next;
-      });
-      setRepositories((prev) =>
-        prev.map((item) =>
-          item.id === repo.id ? { ...item, scan_status: repo.scan_status } : item
-        )
-      );
-      await refreshRepositories();
-    }
-  }
+  function getScanStatusBadge(
+    status: string, 
+    nextScanAt: string | null, 
+    hasScanRequested: boolean
+  ) {
+    const now = new Date();
+    const nextScan = nextScanAt ? new Date(nextScanAt) : null;
+    const isOverdue = nextScan && nextScan <= now;
 
-  function getScanStatusBadge(status: string, hasScanRequested: boolean) {
     const styles = {
-      pending: hasScanRequested
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse'
-        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-      scanning: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse',
-      success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-      failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      'never-scanned': 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+      'scanning': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse',
+      'up-to-date': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      'overdue': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      'failed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     };
 
+    let label = '';
+    let style = '';
+    let tooltip = '';
+
+    if (status === 'scanning' || hasScanRequested) {
+      label = 'Scanning...';
+      style = styles['scanning'];
+      tooltip = 'Repository is currently being scanned for API endpoint usage';
+    } else if (status === 'failed') {
+      label = 'Scan failed';
+      style = styles['failed'];
+      tooltip = 'Last scan encountered an error. Check error details below.';
+    } else if (status === 'pending') {
+      label = 'Never scanned';
+      style = styles['never-scanned'];
+      tooltip = 'Repository has been added but not yet scanned. Schedule a scan or click "Scan Now" to start.';
+    } else if (status === 'success') {
+      if (isOverdue) {
+        label = 'Scan overdue';
+        style = styles['overdue'];
+        tooltip = 'Scheduled scan is overdue. Schedule a scan or click "Scan Now".';
+      } else {
+        label = 'Up to date';
+        style = styles['up-to-date'];
+        tooltip = 'Repository has been scanned recently and is up to date.';
+      }
+    }
+
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || styles.pending}`}>
-        {getScanStatusLabel(status, hasScanRequested)}
+      <span 
+        className={`px-2 py-1 text-xs font-medium rounded-full ${style} cursor-help`}
+        title={tooltip}
+      >
+        {label}
       </span>
     );
   }
 
-  function getScanStatusLabel(status: string, hasScanRequested: boolean) {
-    switch (status) {
-      case 'pending':
-        return hasScanRequested ? 'Scanning' : 'Ready to scan';
-      case 'scanning':
-        return 'Scanning';
-      case 'success':
-        return 'Scanned';
-      case 'failed':
-        return 'Failed';
-      default:
-        return status;
-    }
+  // ✨ NEW: Helper to format relative time
+  function formatRelativeTime(dateString: string | null): string {
+    if (!dateString) return 'Never';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString();
+  }
+
+  // ✨ NEW: Helper to format next scan time
+  function formatNextScanTime(nextScanAt: string | null, scanStatus: string): string {
+    if (!nextScanAt) return 'Not scheduled';
+    if (scanStatus === 'scanning') return 'Scanning now...';
+    
+    const date = new Date(nextScanAt);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    
+    if (diffMs < 0) return 'Scan pending';
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+    if (diffHours < 24) return `in ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+    return `in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
   }
 
   // Check if auto-updating is active
@@ -251,53 +285,70 @@ export default function CodeRepositoriesPage() {
             </div>
           )}
         </div>
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Code Repositories</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Connect your repositories to detect API endpoint usage
-            </p>
-          </div>
+
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            Code Repositories
+          </h1>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/50"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
           >
             <Plus className="h-5 w-5" />
-            <span>Add Repository</span>
+            Add Repository
           </button>
         </div>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{repositories.length}</div>
-          <div className="text-sm text-slate-600 dark:text-slate-400">Total Repositories</div>
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search repositories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
-            {repositories.filter((r) => r.scan_status === 'success').length}
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400">Successfully Scanned</div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
-            {repositories.reduce((sum, r) => sum + r.total_endpoints_found, 0)}
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400">Endpoints Detected</div>
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search repositories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
+        {/* Status Legend */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setShowStatusLegend(!showStatusLegend)}
+            className="w-full flex items-center justify-between p-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              <span className="font-medium">What do scan statuses mean?</span>
+            </div>
+            <span className="text-xs text-slate-500">{showStatusLegend ? 'Hide' : 'Show'}</span>
+          </button>
+          
+          {showStatusLegend && (
+            <div className="px-3 pb-3 space-y-2 text-xs">
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium whitespace-nowrap">Up to date</span>
+                <span className="text-slate-600 dark:text-slate-400">Recently scanned and next scan is scheduled</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full font-medium whitespace-nowrap">Scan overdue</span>
+                <span className="text-slate-600 dark:text-slate-400">Scheduled scan is past due - schedule a scan or click "Scan Now"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium whitespace-nowrap">Scanning...</span>
+                <span className="text-slate-600 dark:text-slate-400">Repository is currently being analyzed for API usage</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded-full font-medium whitespace-nowrap">Never scanned</span>
+                <span className="text-slate-600 dark:text-slate-400">Repository added but not yet scanned - schedule a scan or click "Scan Now"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium whitespace-nowrap">Scan failed</span>
+                <span className="text-slate-600 dark:text-slate-400">Last scan encountered an error - check error message below repository</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Repository List */}
@@ -336,7 +387,7 @@ export default function CodeRepositoriesPage() {
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                       {repo.name}
                     </h3>
-                    {getScanStatusBadge(repo.scan_status, hasScanRequested)}
+                    {getScanStatusBadge(repo.scan_status, repo.next_scan_at, hasScanRequested)}
                   </div>
                   <a
                     href={repo.url}
@@ -384,12 +435,27 @@ export default function CodeRepositoriesPage() {
                 </div>
               </div>
 
-              {/* Last Scan Info */}
-              {repo.last_scanned_at && (
-                <div className="text-xs text-slate-500 dark:text-slate-500 mb-4">
-                  Last scanned: {new Date(repo.last_scanned_at).toLocaleString()}
+              {/* ✨ NEW: Scan Timing Info */}
+              <div className="space-y-2 mb-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Last scanned:</span>
+                  </div>
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    {formatRelativeTime(repo.last_scanned_at)}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>Next scan:</span>
+                  </div>
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    {formatNextScanTime(repo.next_scan_at, repo.scan_status)}
+                  </span>
+                </div>
+              </div>
 
               {/* Error Message */}
               {repo.last_scan_error && (

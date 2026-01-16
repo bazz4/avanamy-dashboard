@@ -250,6 +250,9 @@ export interface CodeRepository {
   last_scan_error: string | null;
   total_files_scanned: number;
   total_endpoints_found: number;
+  scan_interval_hours: number;
+  next_scan_at: string | null;
+  consecutive_scan_failures: number;
   created_at: string;
   updated_at: string;
 }
